@@ -29,7 +29,8 @@ linter:
   rules:
     # --- Off, with reasons -------------------------------------------------
 
-    # These are apps, not published packages. A doc comment on every public
+    # Carried from the app config this is shared with. A doc comment on
+    # every public
     # member buys a wall of `/// The name.` restatements, which is the
     # opposite of readable — and it would drown the comments in these repos
     # that are genuinely worth reading.
@@ -39,12 +40,11 @@ linter:
     # Rewriting `math.max(0.0, x)` to `math.max(0, x)` selects the `num`
     # overload instead of the `double` one, so the result no longer assigns to
     # a `double` — a compile error `dart fix` introduces while "fixing" style.
-    # Cost seven sites across bramble-knight, mix-a-beast, peel-frenzy and
-    # tilt-duo on 2026-09-08.
+    # Cost seven sites across four Flutter apps on 2026-09-08.
     prefer_int_literals: false
 
     # **`dart fix` applies this incorrectly to a collection-`if` whose bound
-    # variable is used in the map KEY.** In weekly-plate it rewrote
+    # variable is used in the map KEY.** In one app here it rewrote
     # `if (m[k] case final dinner?) dinner.key: dinner` to
     # `dinner.key: ?m[k]`, leaving `dinner` undefined — a compile error
     # introduced by a style fix, found 2026-09-08.
