@@ -140,9 +140,12 @@ network's current terms.**
 
 ### Running a fallback network behind Kidoz
 
-Checked 2026-09-18, because the sibling policy file records AppLovin
-prohibiting exactly this ("do not mediate MAX inside internal or third-party
-mediation", with account suspension as the remedy).
+Worth checking rather than assuming, because some networks prohibit exactly
+this — AppLovin's publisher terms forbid mediating MAX inside internal or
+third-party mediation, with account suspension as the stated remedy. Running
+your own waterfall is not automatically safe.
+
+Checked 2026-09-18:
 
 **Kidoz has no equivalent clause.** Their public Terms of Service carry one
 compliance line — *"Maintain compliance with all applicable laws including
@@ -159,25 +162,30 @@ positive evidence:
   auction against other demand.
 - The SDK documents S2S/ORTB bidding, which is inherently multi-demand.
 
-### The clause that *does* bite, and it is not the one you would guess
+### What the Publisher Agreement actually says
 
-Publisher registration requires a representation about the **whole portfolio**:
+Read 2026-09-18, and worth reading yourself rather than trusting secondhand
+summaries — including this one. Two clauses matter:
 
-> Kidoz publishers must confirm that all of their content properties are COPPA
-> and GDPR compliant and perform no monitoring or tracking of U13 users in
-> their operations.
+- **Non-exclusive, in terms.** *"This Agreement is non-exclusive. Neither Party
+  is required to purchase, sell or make available any minimum amount of
+  inventory, traffic, Ads or services"* (§2). That settles the fallback
+  question above contractually rather than by inference.
+- **No publisher COPPA representation.** The agreement describes *Kidoz's* own
+  COPPA/GDPR-K compliance and imposes no equivalent warranty on the publisher,
+  beyond generic obligations to hold the necessary rights (§4) and provide the
+  necessary notices and consents (§10).
 
-Two consequences, both account-scoped rather than app-scoped:
+That last point corrects a claim repeated in third-party documentation — that
+Kidoz publishers must confirm *all* of their content properties are COPPA
+compliant and track no U13 users. That sentence appears in integration docs
+elsewhere, **not** in the agreement you actually sign. If your portfolio mixes
+child-directed and adult apps, check the current agreement text before assuming
+either reading.
 
-1. **Any app that also runs another network must keep that network
-   child-directed.** Non-personalised, no IDFA, no `AD_ID`, content rating
-   capped. A fallback leg that quietly collects an advertising identifier
-   falsifies the representation even though the Kidoz slot itself is clean.
-2. **An app that does track U13 users must not be on the account at all** —
-   and "all of their content properties" means leaving it off the dashboard is
-   not obviously enough. This is the same account-level shape that Unity's
-   *"at the application and account level rather than to rewarded inventory
-   only"* turned out to have. Read it as covering the publisher, not the app.
+Also in §8: Kidoz may defer payment until the balance reaches **US$150**, with
+reporting 30 days after month-end. On a contextual kids-only network that
+threshold can take a while, so plan for a long first gap.
 
 ### On rewarded video for this audience
 
