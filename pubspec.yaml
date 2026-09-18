@@ -1,0 +1,38 @@
+name: kidoz_ads
+description: >-
+  Direct Flutter integration for the Kidoz advertising SDK — the COPPA and
+  GDPR-K certified contextual network for child-directed apps. Banner,
+  interstitial and rewarded ads on Android and iOS, with no mediation layer.
+version: 0.1.0
+repository: https://github.com/jameskrupnik/kidoz_ads
+issue_tracker: https://github.com/jameskrupnik/kidoz_ads/issues
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^10.3.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.illuminationdevelopment.kidoz_ads
+        pluginClass: KidozAdsPlugin
+      ios:
+        pluginClass: KidozAdsPlugin
+
+topics:
+  - ads
+  - advertising
+  - monetization
+  - coppa
+  - kidoz

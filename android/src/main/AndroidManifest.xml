@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Merged into the consuming app. ACCESS_NETWORK_STATE is what lets an ad
+         SDK distinguish "no network" from "no fill" instead of timing out.
+
+         Note what is deliberately NOT here: com.google.android.gms.permission.AD_ID.
+         AdMob's own manifest contributes that permission at merge time and a
+         child-directed app has to strip it back out; Kidoz contributes nothing
+         to strip, because its SDK is verified to carry no advertising
+         identifier at all. If you are reading this while auditing a merged
+         manifest, this plugin is not where an AD_ID came from. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+</manifest>
