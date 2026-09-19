@@ -29,11 +29,22 @@ Worth stating plainly rather than discovering:
 | Layer | State |
 |---|---|
 | Dart API, event routing, error mapping | 14 tests, green |
-| Android Kotlin | Compiles against the documented API. **Never built or run** |
-| iOS Swift | Compiles against the documented API. **Never built or run** |
+| Android Kotlin | **Compiles** against `kidoz-android-native` 10.1.9 in a real app. Never *run* |
+| iOS Swift | **Compiles and links** against `KidozSDK` 10.1.5 for the simulator. Never *run* |
+| Any ad actually serving | **Unverified** |
 
-Neither native half can be exercised without publisher credentials, and Kidoz
-issues those only through
+Both halves now compile inside a consuming Flutter app, which is what caught
+the two faults listed below — `KidozError` is non-null in every Android
+callback, and `consumer-rules.pro` has to exist. Neither was visible in the
+published docs.
+
+What compiling cannot tell you is whether an ad arrives. That needs live
+requests against a real publisher account, and **Kidoz has no test inventory
+to request against** — no sample app id, no debug mode, nothing equivalent to
+AdMob's test units. Every verification impression is a real one. Plan for that
+rather than discovering it.
+
+Credentials come only through
 [publisher onboarding](https://accounts.kidoz.net/publishers/register). The
 sample credentials in Kidoz's own repo are marked *"be sure not to publish your
 app with them"* and are not a substitute.
