@@ -38,11 +38,13 @@ internal object KidozErrorCode {
  * reason given on [KidozErrorCode]. The message is passed through untouched and
  * is documented in Dart as something never to branch on.
  */
-internal fun KidozError?.toEventMap(code: String): Map<String, Any?> = mapOf(
+internal fun KidozError.toEventMap(code: String): Map<String, Any?> = mapOf(
     "code" to code,
-    // getMessage() is nullable and has been observed empty where toString()
-    // carries the detail, so both are tried before giving up.
-    "message" to (this?.message?.takeIf { it.isNotBlank() }
-        ?: this?.toString()
-        ?: "No message provided"),
+    // Non-null receiver, because every Android callback declares KidozError
+    // non-null — verified by the compiler, which rejected the nullable version
+    // outright. iOS is the same. getMessage() itself is still nullable and has
+    // been observed empty where toString() carries the detail, so both are
+    // tried before giving up.
+    "message" to (message?.takeIf { it.isNotBlank() }
+        ?: toString()),
 )
