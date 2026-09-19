@@ -132,10 +132,10 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
                         result.success(null)
                     }
 
-                    override fun onInitError(error: KidozError?) {
+                    override fun onInitError(error: KidozError) {
                         result.error(
                             "INIT_FAILED",
-                            error?.message ?: "Kidoz SDK failed to initialize",
+                            error.message ?: "Kidoz SDK failed to initialize",
                             null,
                         )
                     }
@@ -213,12 +213,12 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
             sendEvent(adId, "loaded")
         }
 
-        override fun onAdFailedToLoad(error: KidozError?) =
+        override fun onAdFailedToLoad(error: KidozError) =
             sendEvent(adId, "loadFailed", error.toEventMap(KidozErrorCode.NO_FILL))
 
         override fun onAdShown(ad: KidozInterstitialAd) = sendEvent(adId, "shown")
 
-        override fun onAdFailedToShow(ad: KidozInterstitialAd, error: KidozError?) {
+        override fun onAdFailedToShow(ad: KidozInterstitialAd, error: KidozError) {
             fullScreenAds.remove(adId)
             sendEvent(adId, "showFailed", error.toEventMap(KidozErrorCode.SHOW_FAILED))
         }
@@ -242,12 +242,12 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
             sendEvent(adId, "loaded")
         }
 
-        override fun onAdFailedToLoad(error: KidozError?) =
+        override fun onAdFailedToLoad(error: KidozError) =
             sendEvent(adId, "loadFailed", error.toEventMap(KidozErrorCode.NO_FILL))
 
         override fun onAdShown(ad: KidozRewardedAd) = sendEvent(adId, "shown")
 
-        override fun onAdFailedToShow(ad: KidozRewardedAd, error: KidozError?) {
+        override fun onAdFailedToShow(ad: KidozRewardedAd, error: KidozError) {
             fullScreenAds.remove(adId)
             sendEvent(adId, "showFailed", error.toEventMap(KidozErrorCode.SHOW_FAILED))
         }

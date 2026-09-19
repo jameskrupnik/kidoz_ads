@@ -118,12 +118,12 @@ internal class KidozBannerPlatformView(
             sendEvent(adId, "loaded", emptyMap())
         }
 
-        override fun onAdFailedToLoad(error: KidozError?) =
+        override fun onAdFailedToLoad(error: KidozError) =
             sendEvent(adId, "loadFailed", error.toEventMap(KidozErrorCode.NO_FILL))
 
         override fun onAdShown() = Unit
 
-        override fun onAdFailedToShow(error: KidozError?) =
+        override fun onAdFailedToShow(error: KidozError) =
             sendEvent(adId, "showFailed", error.toEventMap(KidozErrorCode.SHOW_FAILED))
 
         override fun onAdImpression() = sendEvent(adId, "impression", emptyMap())
