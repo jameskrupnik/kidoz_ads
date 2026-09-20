@@ -1,0 +1,25 @@
+name: kidoz_ads_example
+description: Demonstrates kidoz_ads — banner, interstitial and rewarded.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # The package under demonstration, by path. An example is built against the
+  # working tree rather than the published version, so a change to the plugin
+  # is exercised here before it is released rather than after.
+  kidoz_ads:
+    path: ../
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

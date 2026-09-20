@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart';
 import 'package:kidoz_ads/src/kidoz_ad_error.dart';
 import 'package:kidoz_ads/src/kidoz_ads_base.dart';
@@ -165,7 +167,7 @@ class KidozRewardedAd extends KidozFullScreenAd {
   }) {
     KidozAds.instance.debugAssertInitialized('rewarded ad');
     final ad = KidozRewardedAd._(loadCallback: adLoadCallback);
-    KidozFullScreenAd._load(adId: ad._adId, rewarded: true);
+    unawaited(KidozFullScreenAd._load(adId: ad._adId, rewarded: true));
   }
 
   /// Presents the ad, reporting the reward to [onUserEarnedReward].
@@ -185,7 +187,8 @@ class KidozRewardedAd extends KidozFullScreenAd {
         _loadCallback.onAdLoaded(this);
       case 'loadFailed':
         _loadCallback.onAdFailedToLoad(KidozAdError.fromMap(arguments));
-        dispose();
+        // Nothing is waiting on the native teardown of an ad that never loaded.
+        unawaited(dispose());
       case 'rewardReceived':
         _onUserEarnedReward?.call(this);
       default:
@@ -215,7 +218,7 @@ class KidozInterstitialAd extends KidozFullScreenAd {
   }) {
     KidozAds.instance.debugAssertInitialized('interstitial ad');
     final ad = KidozInterstitialAd._(loadCallback: adLoadCallback);
-    KidozFullScreenAd._load(adId: ad._adId, rewarded: false);
+    unawaited(KidozFullScreenAd._load(adId: ad._adId, rewarded: false));
   }
 
   @override
@@ -225,7 +228,8 @@ class KidozInterstitialAd extends KidozFullScreenAd {
         _loadCallback.onAdLoaded(this);
       case 'loadFailed':
         _loadCallback.onAdFailedToLoad(KidozAdError.fromMap(arguments));
-        dispose();
+        // Nothing is waiting on the native teardown of an ad that never loaded.
+        unawaited(dispose());
       default:
         _dispatchContentEvent(
           this,
