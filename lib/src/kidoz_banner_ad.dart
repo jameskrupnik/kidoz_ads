@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -181,16 +183,22 @@ class _KidozBannerAdState extends State<KidozBannerAd> {
         hitTestBehavior: PlatformViewHitTestBehavior.opaque,
       ),
       onCreatePlatformView: (params) {
-        return PlatformViewsService.initExpensiveAndroidView(
+        final controller = PlatformViewsService.initExpensiveAndroidView(
           id: params.id,
           viewType: _viewType,
           layoutDirection: TextDirection.ltr,
           creationParams: _creationParams,
           creationParamsCodec: const StandardMessageCodec(),
           onFocus: () => params.onFocusChanged(true),
-        )
-          ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
-          ..create();
+        )..addOnPlatformViewCreatedListener(params.onPlatformViewCreated);
+
+        // Deliberately not awaited: `onCreatePlatformView` returns the
+        // controller synchronously and Flutter drives the rest through the
+        // creation listener above. Written out rather than left as a third
+        // cascade member so the discarding is visible — the documented idiom
+        // hides it in `..create()`.
+        unawaited(controller.create());
+        return controller;
       },
     );
   }

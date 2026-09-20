@@ -29,8 +29,9 @@ Worth stating plainly rather than discovering:
 | Layer | State |
 |---|---|
 | Dart API, event routing, error mapping | 14 tests, green |
+| Example app | Builds and runs; its widget test covers the no-credentials path |
 | Android Kotlin | **Compiles** against `kidoz-android-native` 10.1.9 in a real app. Never *run* |
-| iOS Swift | **Compiles and links** against `KidozSDK` 10.1.5 for the simulator. Never *run* |
+| iOS Swift | **Compiles, links and archives** against `KidozSDK` 10.1.5 — it is inside a submitted App Store build. Never *run* |
 | Any ad actually serving | **Unverified** |
 
 Both halves now compile inside a consuming Flutter app, which is what caught
@@ -67,11 +68,18 @@ commented at the site:
 
 ## Install
 
+```console
+$ flutter pub add kidoz_ads
+```
+
+or, in `pubspec.yaml`:
+
 ```yaml
 dependencies:
-  kidoz_ads:
-    path: ../kidoz_ads
+  kidoz_ads: ^0.1.0
 ```
+
+Requires Flutter 3.24 and Dart 3.6. Android `minSdk` 21, iOS 13.
 
 Android pulls `net.kidoz.sdk:kidoz-android-native:10.1.9` from Maven Central;
 iOS pulls `KidozSDK` 10.1.5 from CocoaPods. Both are pinned exactly, for the
@@ -90,6 +98,29 @@ iOS also needs Kidoz's SKAdNetwork id in `Info.plist`:
   </dict>
 </array>
 ```
+
+### CocoaPods only, and not by choice
+
+Every build prints *"kidoz_ads does not have Swift Package Manager support"*,
+which will become an error in a future Flutter. It is not an oversight and it
+cannot be fixed here: a plugin can only offer SPM if its native dependency
+does, and **Kidoz distributes `KidozSDK` through CocoaPods and Maven only** —
+there is no `Package.swift` in their SDK repo and no Swift package to depend
+on. Use CocoaPods for the iOS half until Kidoz publishes one.
+
+## Example
+
+[`example/`](example) is a small app with a button per format. It needs real
+credentials, passed at build time so the file stays committable:
+
+```console
+$ cd example
+$ flutter run --dart-define=KIDOZ_PUBLISHER_ID=... \
+              --dart-define=KIDOZ_SECURITY_TOKEN=...
+```
+
+Without them it still builds and runs, and says what is missing rather than
+throwing — which is also the path its widget test covers.
 
 ## Use
 
@@ -123,7 +154,7 @@ contextually. If you are porting from AdMob or InMobi, the placement argument
 you are looking for does not exist, and a test in this package asserts one
 never reappears in the payload by copy-paste.
 
-### There is no consent API, and that is the design
+### There is no consent API, and that is the design — but read the next part
 
 Every other network in this family needs a privacy signal pushed into it —
 InMobi takes a GDPR consent dictionary, AdMob needs `childDirected` and a
@@ -134,6 +165,46 @@ identifier to withhold and no personalisation to turn off.
 
 **The absence of `setChildDirected` here is not a missing feature.** The
 network has no other mode.
+
+### …and in the EEA that absence is your problem to solve
+
+The sentence above is true about *personalisation* and it is easy to finish
+reading one clause too early. It also means there is **no way to tell the SDK
+that a user did not consent** — so if you are serving in the EEA, the UK or
+Switzerland, the only lever you have is whether `initialize` is called at all.
+
+Two things make that matter, and they are not obvious from the SDK:
+
+- **Kidoz collects a truncated IP address.** No advertising identifier, but a
+  truncated IP is still personal data under GDPR, and both stores classify it
+  as coarse/approximate **location** on their privacy forms. Kidoz's own Data
+  Safety guidance has you declare it as collected *and shared*.
+- **A CMP does not cover it.** If you gather consent through Google's UMP, that
+  consent covers Google and the ad partners named in your AdMob message. Kidoz
+  is a direct SDK on its own publisher account — that is the entire point of
+  this package — so it is in no such list and nothing your user agreed to
+  reaches it.
+
+The shape that works is to gate initialization on the answer, and to make the
+gate **fail closed**: assume a consent regime applies until you positively
+learn otherwise, because a wrong "no" is a request you had no basis to make.
+
+```dart
+// `regimeApplies` defaults to true and is only lowered on a positive
+// "consent not required" from your CMP. Awaited, not read — asking before
+// the CMP has answered must not come back as "no regime here".
+if (await consent.regimeApplies()) return; // leave the slot to another network
+
+await KidozAds.instance.initialize(
+  publisherId: '...',
+  securityToken: '...',
+);
+```
+
+None of this is legal advice, and a package cannot know your jurisdiction, your
+CMP or what your privacy policy says. It is here because the "no consent API"
+line above reads as "nothing to do", and for one of us it did — the app this
+package was written for shipped that reading and had to correct it.
 
 ### The reward carries no payload
 
