@@ -25,7 +25,7 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.illuminationdevelopment.kidoz_ads
+        package: com.jameskrupnik.kidoz_ads
         pluginClass: KidozAdsPlugin
       ios:
         pluginClass: KidozAdsPlugin

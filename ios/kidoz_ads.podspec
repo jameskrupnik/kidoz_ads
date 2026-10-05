@@ -9,7 +9,7 @@ integrated directly against the native SDKs with no mediation layer.
                        DESC
   s.homepage         = 'https://github.com/jameskrupnik/kidoz_ads'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Illumination Development' => 'james.krupnik@illuminationdevelopment.com' }
+  s.author           = { 'James Krupnik' => 'jameskrupnik@gmail.com' }
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
 

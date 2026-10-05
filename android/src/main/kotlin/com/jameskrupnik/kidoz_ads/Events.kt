@@ -1,4 +1,4 @@
-package com.illuminationdevelopment.kidoz_ads
+package com.jameskrupnik.kidoz_ads
 
 import net.kidoz.sdk.KidozError
 

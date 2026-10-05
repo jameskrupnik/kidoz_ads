@@ -12,4 +12,4 @@
 }
 
 # The plugin's own entry points, reached reflectively by the Flutter embedding.
--keep class com.illuminationdevelopment.kidoz_ads.** { *; }
+-keep class com.jameskrupnik.kidoz_ads.** { *; }

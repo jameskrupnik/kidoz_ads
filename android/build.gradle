@@ -1,4 +1,4 @@
-group = "com.illuminationdevelopment.kidoz_ads"
+group = "com.jameskrupnik.kidoz_ads"
 version = "0.1.0"
 
 buildscript {
@@ -24,7 +24,7 @@ apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
 android {
-    namespace = "com.illuminationdevelopment.kidoz_ads"
+    namespace = "com.jameskrupnik.kidoz_ads"
     compileSdk = 35
 
     compileOptions {

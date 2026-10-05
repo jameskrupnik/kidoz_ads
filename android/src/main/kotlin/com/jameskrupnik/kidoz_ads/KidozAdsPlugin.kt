@@ -1,4 +1,4 @@
-package com.illuminationdevelopment.kidoz_ads
+package com.jameskrupnik.kidoz_ads
 
 import android.app.Activity
 import android.os.Handler
