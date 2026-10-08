@@ -1,6 +1,7 @@
 import 'dart:async' show unawaited;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:kidoz_ads/src/kidoz_ad_error.dart';
 import 'package:kidoz_ads/src/kidoz_ads_base.dart';
 import 'package:kidoz_ads/src/platform.dart';
@@ -25,16 +26,21 @@ typedef KidozOnUserEarnedReward = void Function(KidozRewardedAd ad);
 /// Exactly one of [onAdLoaded] and [onAdFailedToLoad] runs, once.
 @immutable
 class KidozFullScreenAdLoadCallback<T extends KidozFullScreenAd> {
+  /// Creates a load callback that handles both outcomes.
   const KidozFullScreenAdLoadCallback({
     required this.onAdLoaded,
     required this.onAdFailedToLoad,
   });
 
-  /// The ad is ready. It is yours to `show()` and then `dispose()`.
+  /// Called with the ad once it is ready.
+  ///
+  /// It is yours to `show()` and then `dispose()`.
   final void Function(T ad) onAdLoaded;
 
-  /// Nothing will be shown. [KidozAdError.isNoFill] distinguishes an empty
-  /// auction from an actual failure.
+  /// Called when no ad will be shown.
+  ///
+  /// [KidozAdError.isNoFill] distinguishes an empty auction from an actual
+  /// failure.
   final void Function(KidozAdError error) onAdFailedToLoad;
 }
 
@@ -52,6 +58,7 @@ class KidozFullScreenAdLoadCallback<T extends KidozFullScreenAd> {
 /// [onAdFailedToShowFullScreenContent] is terminal in the abnormal one.
 @immutable
 class KidozFullScreenContentCallback<T extends KidozFullScreenAd> {
+  /// Creates a content callback in which every handler is optional.
   const KidozFullScreenContentCallback({
     this.onAdShowedFullScreenContent,
     this.onAdDismissedFullScreenContent,
@@ -59,14 +66,33 @@ class KidozFullScreenContentCallback<T extends KidozFullScreenAd> {
     this.onAdImpression,
   });
 
+  /// Called when the ad has taken over the screen.
   final void Function(T ad)? onAdShowedFullScreenContent;
+
+  /// Called when the user has closed the ad.
+  ///
+  /// Terminal in the normal path. Dispose the ad here; it cannot be shown again.
   final void Function(T ad)? onAdDismissedFullScreenContent;
+
+  /// Called when a loaded ad could not be presented.
+  ///
+  /// Terminal in the abnormal path. The error's [KidozAdError.code] is [KidozAdErrorCode.showFailed] for a
+  /// failure Kidoz reported, or [KidozAdErrorCode.internalError] when the
+  /// plugin itself could not present (no view controller, or an ad that was
+  /// never loaded or already spent).
   final void Function(T ad, KidozAdError error)?
       onAdFailedToShowFullScreenContent;
+
+  /// Called when Kidoz counts an impression for the ad.
   final void Function(T ad)? onAdImpression;
 }
 
 /// Shared machinery for the two full-screen formats.
+///
+/// Not constructed directly: get a [KidozInterstitialAd] or [KidozRewardedAd]
+/// from its `load`. Each subclass declares its own `fullScreenContentCallback`
+/// typed to itself, so a callback written for a rewarded ad receives a
+/// [KidozRewardedAd] rather than this base type.
 ///
 /// Unlike InMobi — where both formats are one native class and the dashboard
 /// decides which you get — Kidoz has genuinely separate `KidozInterstitialAd`
@@ -82,9 +108,6 @@ abstract class KidozFullScreenAd {
 
   bool _shown = false;
   bool _disposed = false;
-
-  /// Events for an ad that has loaded. Set this before calling [show].
-  KidozFullScreenContentCallback<KidozFullScreenAd>? fullScreenContentCallback;
 
   void _handleEvent(String event, Map<Object?, Object?> arguments);
 
@@ -103,26 +126,71 @@ abstract class KidozFullScreenAd {
       return;
     }
     _shown = true;
-    await KidozAdsPlatform.channel
-        .invokeMethod<void>('showFullScreenAd', {'adId': _adId});
+    await _invokeOrReport(
+      'showFullScreenAd',
+      {'adId': _adId},
+      failureEvent: 'showFailed',
+    );
   }
 
-  /// Releases the native ad. Call it once you are done, in every path.
+  /// Releases the native ad.
   ///
+  /// Call it once you are done, in every path.
   /// After this, late events for the ad are dropped rather than delivered.
+  ///
+  /// Never throws: by the time the native side could refuse, the Dart side is
+  /// already released, and there is nothing a caller could do with the error.
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
     KidozAdsPlatform.unregisterAd(_adId);
-    await KidozAdsPlatform.channel
-        .invokeMethod<void>('disposeAd', {'adId': _adId});
+    try {
+      await KidozAdsPlatform.channel
+          .invokeMethod<void>('disposeAd', {'adId': _adId});
+    } on PlatformException {
+      // Nothing to release, or nothing left to release it with.
+    } on MissingPluginException {
+      // No native half on this platform, so nothing was ever held.
+    }
   }
 
-  static Future<void> _load({required int adId, required bool rewarded}) {
-    return KidozAdsPlatform.channel.invokeMethod<void>('loadFullScreenAd', {
-      'adId': adId,
-      'rewarded': rewarded,
-    });
+  void _requestLoad({required bool rewarded}) {
+    unawaited(
+      _invokeOrReport(
+        'loadFullScreenAd',
+        {'adId': _adId, 'rewarded': rewarded},
+        failureEvent: 'loadFailed',
+      ),
+    );
+  }
+
+  /// Calls [method], turning a refusal into [failureEvent] for this ad.
+  ///
+  /// The native halves refuse some calls outright — Android answers a load
+  /// with `NO_ACTIVITY` when the engine has no activity attached — and these
+  /// calls are made without the caller awaiting them. Unhandled, the refusal
+  /// escaped as an uncaught async error and no callback ever ran, so a
+  /// fallback chain waiting on one stalled. Routed through [_handleEvent] it
+  /// reaches the same callback, and the same cleanup, as a failure the SDK
+  /// reported itself.
+  Future<void> _invokeOrReport(
+    String method,
+    Map<String, Object?> arguments, {
+    required String failureEvent,
+  }) async {
+    try {
+      await KidozAdsPlatform.channel.invokeMethod<void>(method, arguments);
+    } on PlatformException catch (error) {
+      _handleEvent(failureEvent, {
+        'code': 'INTERNAL_ERROR',
+        'message': '${error.code}: ${error.message ?? 'no message'}',
+      });
+    } on MissingPluginException catch (error) {
+      _handleEvent(failureEvent, {
+        'code': 'INTERNAL_ERROR',
+        'message': error.message ?? 'Kidoz is not available on this platform',
+      });
+    }
   }
 }
 
@@ -156,6 +224,11 @@ class KidozRewardedAd extends KidozFullScreenAd {
 
   KidozOnUserEarnedReward? _onUserEarnedReward;
 
+  /// The handlers for this ad's events once it has loaded.
+  ///
+  /// Set this before calling [show].
+  KidozFullScreenContentCallback<KidozRewardedAd>? fullScreenContentCallback;
+
   /// Requests a rewarded ad.
   ///
   /// There is no placement id. Kidoz keys everything off the publisher
@@ -165,9 +238,9 @@ class KidozRewardedAd extends KidozFullScreenAd {
   static void load({
     required KidozFullScreenAdLoadCallback<KidozRewardedAd> adLoadCallback,
   }) {
-    KidozAds.instance.debugAssertInitialized('rewarded ad');
-    final ad = KidozRewardedAd._(loadCallback: adLoadCallback);
-    unawaited(KidozFullScreenAd._load(adId: ad._adId, rewarded: true));
+    ensureKidozInitialized('rewarded ad');
+    KidozRewardedAd._(loadCallback: adLoadCallback)
+        ._requestLoad(rewarded: true);
   }
 
   /// Presents the ad, reporting the reward to [onUserEarnedReward].
@@ -186,7 +259,7 @@ class KidozRewardedAd extends KidozFullScreenAd {
       case 'loaded':
         _loadCallback.onAdLoaded(this);
       case 'loadFailed':
-        _loadCallback.onAdFailedToLoad(KidozAdError.fromMap(arguments));
+        _loadCallback.onAdFailedToLoad(kidozAdErrorFromMap(arguments));
         // Nothing is waiting on the native teardown of an ad that never loaded.
         unawaited(dispose());
       case 'rewardReceived':
@@ -211,14 +284,21 @@ class KidozInterstitialAd extends KidozFullScreenAd {
 
   final KidozFullScreenAdLoadCallback<KidozInterstitialAd> _loadCallback;
 
-  /// Requests an interstitial ad. There is no placement id — see
-  /// [KidozRewardedAd.load].
+  /// The handlers for this ad's events once it has loaded.
+  ///
+  /// Set this before calling [show].
+  KidozFullScreenContentCallback<KidozInterstitialAd>?
+      fullScreenContentCallback;
+
+  /// Requests an interstitial ad.
+  ///
+  /// There is no placement id — see [KidozRewardedAd.load].
   static void load({
     required KidozFullScreenAdLoadCallback<KidozInterstitialAd> adLoadCallback,
   }) {
-    KidozAds.instance.debugAssertInitialized('interstitial ad');
-    final ad = KidozInterstitialAd._(loadCallback: adLoadCallback);
-    unawaited(KidozFullScreenAd._load(adId: ad._adId, rewarded: false));
+    ensureKidozInitialized('interstitial ad');
+    KidozInterstitialAd._(loadCallback: adLoadCallback)
+        ._requestLoad(rewarded: false);
   }
 
   @override
@@ -227,7 +307,7 @@ class KidozInterstitialAd extends KidozFullScreenAd {
       case 'loaded':
         _loadCallback.onAdLoaded(this);
       case 'loadFailed':
-        _loadCallback.onAdFailedToLoad(KidozAdError.fromMap(arguments));
+        _loadCallback.onAdFailedToLoad(kidozAdErrorFromMap(arguments));
         // Nothing is waiting on the native teardown of an ad that never loaded.
         unawaited(dispose());
       default:
@@ -244,7 +324,7 @@ class KidozInterstitialAd extends KidozFullScreenAd {
 /// Routes the events both formats share onto [callback].
 void _dispatchContentEvent<T extends KidozFullScreenAd>(
   T ad,
-  KidozFullScreenContentCallback<KidozFullScreenAd>? callback,
+  KidozFullScreenContentCallback<T>? callback,
   String event,
   Map<Object?, Object?> arguments,
 ) {
@@ -254,7 +334,7 @@ void _dispatchContentEvent<T extends KidozFullScreenAd>(
       callback.onAdShowedFullScreenContent?.call(ad);
     case 'showFailed':
       callback.onAdFailedToShowFullScreenContent
-          ?.call(ad, KidozAdError.fromMap(arguments));
+          ?.call(ad, kidozAdErrorFromMap(arguments));
     case 'closed':
       callback.onAdDismissedFullScreenContent?.call(ad);
     case 'impression':

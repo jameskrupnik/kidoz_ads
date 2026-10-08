@@ -4,7 +4,7 @@ import 'package:kidoz_ads/kidoz_ads.dart';
 /// Credentials come from Kidoz publisher onboarding and are passed in at
 /// build time so this file can be committed without them:
 ///
-/// ```
+/// ```sh
 /// flutter run --dart-define=KIDOZ_PUBLISHER_ID=... \
 ///             --dart-define=KIDOZ_SECURITY_TOKEN=...
 /// ```
@@ -99,14 +99,14 @@ class _HomePageState extends State<HomePage> {
               ad.dispose();
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
-              _note('Interstitial failed to show: ${error.code}');
+              _note('Interstitial failed to show: ${error.code.name}');
               ad.dispose();
             },
           );
           ad.show();
         },
         onAdFailedToLoad: (error) =>
-            _note('Interstitial ${error.code}: ${error.message}'),
+            _note('Interstitial ${error.code.name}: ${error.message}'),
       ),
     );
   }
@@ -126,7 +126,7 @@ class _HomePageState extends State<HomePage> {
           ad.show(onUserEarnedReward: (ad) => _note('Reward earned.'));
         },
         onAdFailedToLoad: (error) =>
-            _note('Rewarded ${error.code}: ${error.message}'),
+            _note('Rewarded ${error.code.name}: ${error.message}'),
       ),
     );
   }
@@ -171,7 +171,7 @@ class _HomePageState extends State<HomePage> {
                 listener: KidozBannerListener(
                   onAdLoaded: () => _note('Banner loaded.'),
                   onAdFailedToLoad: (error) {
-                    _note('Banner ${error.code}: ${error.message}');
+                    _note('Banner ${error.code.name}: ${error.message}');
                     // There is no fill and no creative coming, so take the
                     // slot back rather than leaving a 320x50 hole.
                     setState(() => _showBanner = false);

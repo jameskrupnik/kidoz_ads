@@ -20,38 +20,19 @@ depending on one — which is the reason this package was written. A Kidoz
 adapter inside AdMob mediation is still an app whose ad revenue ends the day
 the AdMob account does.
 
-## Status
+## Things to know first
 
-**The Dart layer is tested. The native layer has never been run.**
-
-Worth stating plainly rather than discovering:
-
-| Layer | State |
-|---|---|
-| Dart API, event routing, error mapping | 14 tests, green |
-| Example app | Builds and runs; its widget test covers the no-credentials path |
-| Android Kotlin | **Compiles** against `kidoz-android-native` 10.1.9 in a real app. Never *run* |
-| iOS Swift | **Compiles, links and archives** against `KidozSDK` 10.1.5 — it is inside a submitted App Store build. Never *run* |
-| Any ad actually serving | **Unverified** |
-
-Both halves now compile inside a consuming Flutter app, which is what caught
-the two faults listed below — `KidozError` is non-null in every Android
-callback, and `consumer-rules.pro` has to exist. Neither was visible in the
-published docs.
-
-What compiling cannot tell you is whether an ad arrives. That needs live
-requests against a real publisher account, and **Kidoz has no test inventory
-to request against** — no sample app id, no debug mode, nothing equivalent to
-AdMob's test units. Every verification impression is a real one. Plan for that
-rather than discovering it.
+**Kidoz has no test inventory to request against** — no sample app id, no
+debug mode, nothing equivalent to AdMob's test units. Every request hits the
+live account and every impression is a real one. Plan for that rather than
+discovering it.
 
 Credentials come only through
 [publisher onboarding](https://accounts.kidoz.net/publishers/register). The
 sample credentials in Kidoz's own repo are marked *"be sure not to publish your
 app with them"* and are not a substitute.
 
-Two things are most likely to need correcting on first device run, and both are
-commented at the site:
+Two banner details matter, and both are commented at the site:
 
 - **`setLayoutWithoutShowing()` on Android.** Kidoz's programmatic banner
   attaches itself to the *activity window*, which in a Flutter app means it
@@ -62,9 +43,34 @@ commented at the site:
 - **Banner sizes.** Kidoz publishes no size API and no size table. `320×50` is
   the default here because it is the only size Kidoz's own iOS sample
   demonstrates. `leaderboard` and `mediumRectangle` are offered because the
-  underlying view takes whatever frame it is given, but **neither is confirmed
-  to fill.** A banner that reports `loaded` and renders blank is a size
-  mismatch until proven otherwise.
+  underlying view takes whatever frame it is given. A banner that reports
+  `loaded` and renders blank is most likely a size mismatch.
+
+### Android: closing an ad after a click-through can land on the home screen
+
+If the user taps through an interstitial to the Play Store, comes back, and
+closes the ad with its X, the device can show the launcher, not the app. The
+app is still running and `onAdDismissedFullScreenContent` has fired; the user
+just has to reopen it.
+
+This is how the Kidoz SDK starts its ad, not something this plugin does. The
+SDK's `KPAdPlayerActivity` is started with `FLAG_ACTIVITY_NEW_TASK`, and
+Flutter's app template gives `MainActivity` `android:taskAffinity=""`. With
+different affinities, the ad gets **its own task**. The click-through starts
+the Play Store as yet another task. Once the user has left and come back,
+Android no longer treats your app's task as the one behind the ad's, so
+closing the ad's last activity drops to home.
+
+The plugin leaves this alone, because each fix changes your app's task
+behaviour. There are two app-side options:
+
+- **Bring the app's task forward on dismissal**, via
+  `ActivityManager.moveTaskToFront`. This needs the `REORDER_TASKS`
+  permission and is subject to Android's background-activity-start rules.
+- **Drop `android:taskAffinity=""`** from your `MainActivity`, so the ad joins
+  your app's task. The template sets that attribute as a task-hijacking
+  defence, so removing it is a security trade-off for your app to make, not
+  one a plugin should make for you.
 
 ## Install
 
@@ -82,10 +88,10 @@ dependencies:
 Requires Flutter 3.24 and Dart 3.6. Android `minSdk` 21, iOS 13.
 
 Android pulls `net.kidoz.sdk:kidoz-android-native:10.1.9` from Maven Central;
-iOS pulls `KidozSDK` 10.1.5 from CocoaPods. Both are pinned exactly, for the
-same reason `google_mobile_ads` is pinned in the apps that consume this: an ad
-SDK minor release is a change to a native dependency graph, and the way it
-breaks is at one platform's link step only.
+iOS pulls `KidozSDK` 10.1.5 from Swift Package Manager or CocoaPods. Both are
+pinned exactly, for the same reason `google_mobile_ads` is pinned in the apps
+that consume this: an ad SDK minor release is a change to a native dependency
+graph, and the way it breaks is at one platform's link step only.
 
 iOS also needs Kidoz's SKAdNetwork id in `Info.plist`:
 
@@ -99,14 +105,13 @@ iOS also needs Kidoz's SKAdNetwork id in `Info.plist`:
 </array>
 ```
 
-### CocoaPods only, and not by choice
+### Swift Package Manager and CocoaPods
 
-Every build prints *"kidoz_ads does not have Swift Package Manager support"*,
-which will become an error in a future Flutter. It is not an oversight and it
-cannot be fixed here: a plugin can only offer SPM if its native dependency
-does, and **Kidoz distributes `KidozSDK` through CocoaPods and Maven only** —
-there is no `Package.swift` in their SDK repo and no Swift package to depend
-on. Use CocoaPods for the iOS half until Kidoz publishes one.
+Both work. With Swift Package Manager on, the plugin depends on Kidoz's own
+[`kidoz-sdk-swift-package`](https://github.com/Kidoz-SDK/kidoz-sdk-swift-package)
+at exactly 10.1.5; with it off, on the `KidozSDK` pod at the same version.
+Both resolve to the same `KidozSDK.zip` binary, so the choice changes nothing
+about the SDK your app ships.
 
 ## Example
 
@@ -206,6 +211,15 @@ CMP or what your privacy policy says. It is here because the "no consent API"
 line above reads as "nothing to do", and for one of us it did — the app this
 package was written for shipped that reading and had to correct it.
 
+### Errors: branch on `code`, never on `message`
+
+`KidozAdError.code` is a `KidozAdErrorCode` — `noFill`, `showFailed`,
+`notInitialized` or `internalError` — and `isNoFill` is the one most callers
+want: an empty auction, the signal to fall through to another network rather
+than retry. Kidoz's own `KidozError` has no status code, so these are assigned
+from *which callback fired*. `message` is Kidoz's text, passed through
+untouched and free to change between SDK releases.
+
 ### The reward carries no payload
 
 `onRewardReceived(ad)` on both platforms — no name, no amount, because Kidoz
@@ -279,4 +293,13 @@ families policy before wiring the rewarded path to anything a player wants.
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+This plugin's own code is MIT. See [LICENSE](LICENSE).
+
+**The Kidoz SDKs are not, and the MIT licence does not cover them.** This
+package contains none of Kidoz's code; it declares
+`net.kidoz.sdk:kidoz-android-native` and `KidozSDK` as dependencies, and your
+build downloads them from Maven Central, CocoaPods or Swift Package Manager.
+Both are published under a
+[commercial licence](https://github.com/Kidoz-SDK/kidoz-mobile-sdk/blob/main/LICENSE.md)
+that defers to Kidoz's publisher terms, so using them is between you and
+Kidoz. Read those terms before you ship.

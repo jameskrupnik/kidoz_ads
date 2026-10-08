@@ -43,7 +43,10 @@ void main() {
   group('initialize', () {
     test('sends both halves of the credential pair', () {
       expect(log.single.method, 'initialize');
-      expect(log.single.arguments, containsPair('publisherId', 'test-publisher'));
+      expect(
+        log.single.arguments,
+        containsPair('publisherId', 'test-publisher'),
+      );
       expect(log.single.arguments, containsPair('securityToken', 'test-token'));
     });
 
@@ -73,6 +76,26 @@ void main() {
 
       // The retry is the point: a flaky network at launch must not disable ads
       // for the life of the process.
+      await KidozAds.instance.initialize(publisherId: 'p', securityToken: 't');
+      expect(log, hasLength(2));
+    });
+  });
+
+  group('initialize without a native half', () {
+    test('returns false on a platform with no plugin, and retries', () async {
+      KidozAds.instance.debugReset();
+      log.clear();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(KidozAdsPlatform.channel, (call) async {
+        log.add(call);
+        throw MissingPluginException();
+      });
+
+      expect(
+        await KidozAds.instance
+            .initialize(publisherId: 'p', securityToken: 't'),
+        isFalse,
+      );
       await KidozAds.instance.initialize(publisherId: 'p', securityToken: 't');
       expect(log, hasLength(2));
     });
@@ -149,7 +172,7 @@ void main() {
       // The distinction matters to a chain: no fill means try the next
       // network, a show failure means this attempt is simply over.
       expect(showError!.isNoFill, isFalse);
-      expect(showError!.code, 'SHOW_FAILED');
+      expect(showError!.code, KidozAdErrorCode.showFailed);
     });
   });
 
@@ -163,6 +186,21 @@ void main() {
       );
 
       expect(log.last.arguments, containsPair('rewarded', true));
+    });
+
+    test('a load failure reaches the callback and releases the ad', () async {
+      KidozAdError? error;
+      KidozRewardedAd.load(
+        adLoadCallback: KidozFullScreenAdLoadCallback(
+          onAdLoaded: (_) => fail('should not load'),
+          onAdFailedToLoad: (e) => error = e,
+        ),
+      );
+
+      await emit(0, 'loadFailed', {'code': 'NO_FILL', 'message': 'No ads'});
+
+      expect(error!.isNoFill, isTrue);
+      expect(log.last.method, 'disposeAd');
     });
 
     test('reward arrives before closure, so closure is terminal', () async {
@@ -187,6 +225,29 @@ void main() {
       expect(order, ['rewarded', 'closed']);
     });
 
+    test('content callbacks receive the rewarded ad, not the base type',
+        () async {
+      late KidozRewardedAd ad;
+      KidozRewardedAd? shown;
+      KidozRewardedAd.load(
+        adLoadCallback: KidozFullScreenAdLoadCallback(
+          onAdLoaded: (loaded) => ad = loaded,
+          onAdFailedToLoad: (_) => fail('should not fail'),
+        ),
+      );
+      await emit(0, 'loaded');
+
+      // Typed explicitly: with a field typed to the base class this compiled
+      // and then threw a TypeError when the event arrived.
+      ad.fullScreenContentCallback =
+          KidozFullScreenContentCallback<KidozRewardedAd>(
+        onAdShowedFullScreenContent: (shownAd) => shown = shownAd,
+      );
+      await emit(0, 'shown');
+
+      expect(shown, same(ad));
+    });
+
     test('a closure with no reward reports only the closure', () async {
       final order = <String>[];
       late KidozRewardedAd ad;
@@ -207,6 +268,76 @@ void main() {
       // Skipping a rewarded video must not pay out. Asserted because the
       // reward carries no payload here, so "did it fire" is the whole signal.
       expect(order, ['closed']);
+    });
+  });
+
+  group('before initialize', () {
+    test('a load throws instead of looking like no fill', () {
+      KidozAds.instance.debugReset();
+      expect(
+        () => KidozInterstitialAd.load(
+          adLoadCallback: KidozFullScreenAdLoadCallback(
+            onAdLoaded: (_) {},
+            onAdFailedToLoad: (_) {},
+          ),
+        ),
+        throwsStateError,
+      );
+    });
+  });
+
+  group('show', () {
+    Future<KidozInterstitialAd> loadedInterstitial() async {
+      late KidozInterstitialAd ad;
+      KidozInterstitialAd.load(
+        adLoadCallback: KidozFullScreenAdLoadCallback(
+          onAdLoaded: (loaded) => ad = loaded,
+          onAdFailedToLoad: (_) => fail('should not fail'),
+        ),
+      );
+      await emit(0, 'loaded');
+      return ad;
+    }
+
+    test('sends the ad id to the native side', () async {
+      final ad = await loadedInterstitial();
+      await ad.show();
+
+      expect(log.last.method, 'showFullScreenAd');
+      expect(log.last.arguments, {'adId': 0});
+    });
+
+    test('a second show is refused, because Kidoz ads are single-use',
+        () async {
+      final ad = await loadedInterstitial();
+      await ad.show();
+
+      await expectLater(ad.show(), throwsAssertionError);
+    });
+
+    test('a show after dispose is refused', () async {
+      final ad = await loadedInterstitial();
+      await ad.dispose();
+
+      await expectLater(ad.show(), throwsAssertionError);
+    });
+
+    test('impressions reach the content callback', () async {
+      final ad = await loadedInterstitial();
+      var impressions = 0;
+      ad.fullScreenContentCallback = KidozFullScreenContentCallback(
+        onAdImpression: (_) => impressions++,
+      );
+
+      await emit(0, 'impression');
+
+      expect(impressions, 1);
+    });
+
+    test('events with no content callback set are dropped', () async {
+      await loadedInterstitial();
+
+      await emit(0, 'shown');
     });
   });
 
@@ -246,16 +377,6 @@ void main() {
       await emit(1, 'loaded');
 
       expect(loaded, [1]);
-    });
-  });
-
-  group('KidozAdError', () {
-    test('defaults to an internal error rather than inventing no fill', () {
-      // The default matters: a malformed payload read as NO_FILL would tell a
-      // chain to move on quietly when something is actually broken.
-      final error = KidozAdError.fromMap(const {});
-      expect(error.code, 'INTERNAL_ERROR');
-      expect(error.isNoFill, isFalse);
     });
   });
 

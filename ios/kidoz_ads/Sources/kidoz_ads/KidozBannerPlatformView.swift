@@ -47,6 +47,16 @@ final class KidozBannerViewFactory: NSObject, FlutterPlatformViewFactory {
 /// fixed frame, because a Flutter platform view is re-laid-out by the host
 /// whenever the widget's constraints change and a banner holding a stale frame
 /// would simply sit at the old size inside the new slot.
+///
+/// ### Why the delegate is a separate object
+///
+/// `KidozBannerView.delegate` is a **strong** property — its declaration in
+/// KidozSDK's `.swiftinterface` carries no `weak`. With this class as the
+/// delegate, the banner (held through `container`) held this class back, so
+/// neither was ever freed: `deinit` never ran, `close()` was never called,
+/// and every banner a route ever showed stayed alive off screen with its
+/// WebView. `KidozBannerDelegateProxy` holds this class weakly instead, which
+/// lets Flutter's release of the platform view actually tear the banner down.
 final class KidozBannerPlatformView: NSObject, FlutterPlatformView, KidozBannerDelegate {
 
     private let adId: Int
@@ -82,7 +92,8 @@ final class KidozBannerPlatformView: NSObject, FlutterPlatformView, KidozBannerD
         }
 
         let banner = KidozBannerView()
-        banner.delegate = self
+        let proxy = KidozBannerDelegateProxy(owner: self)
+        banner.delegate = proxy
         banner.frame = bannerFrame
         banner.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
@@ -126,5 +137,44 @@ final class KidozBannerPlatformView: NSObject, FlutterPlatformView, KidozBannerD
 
     func onBannerAdClosed(kidozBannerView: KidozBannerView) {
         sendEvent(adId, "closed", [:])
+    }
+}
+
+/// Forwards a banner's delegate calls to a platform view it does not own.
+///
+/// See "Why the delegate is a separate object" on `KidozBannerPlatformView`.
+/// The banner owns this proxy; the proxy only borrows the platform view, so the
+/// ownership runs one way and the platform view can be freed.
+final class KidozBannerDelegateProxy: NSObject, KidozBannerDelegate {
+
+    private weak var owner: KidozBannerDelegate?
+
+    init(owner: KidozBannerDelegate) {
+        self.owner = owner
+        super.init()
+    }
+
+    func onBannerAdLoaded(kidozBannerView: KidozBannerView) {
+        owner?.onBannerAdLoaded(kidozBannerView: kidozBannerView)
+    }
+
+    func onBannerAdFailedToLoad(kidozBannerView: KidozBannerView, error: KidozError) {
+        owner?.onBannerAdFailedToLoad(kidozBannerView: kidozBannerView, error: error)
+    }
+
+    func onBannerAdShown(kidozBannerView: KidozBannerView) {
+        owner?.onBannerAdShown(kidozBannerView: kidozBannerView)
+    }
+
+    func onBannerAdFailedToShow(kidozBannerView: KidozBannerView, error: KidozError) {
+        owner?.onBannerAdFailedToShow(kidozBannerView: kidozBannerView, error: error)
+    }
+
+    func onBannerAdImpression(kidozBannerView: KidozBannerView) {
+        owner?.onBannerAdImpression(kidozBannerView: kidozBannerView)
+    }
+
+    func onBannerAdClosed(kidozBannerView: KidozBannerView) {
+        owner?.onBannerAdClosed(kidozBannerView: kidozBannerView)
     }
 }

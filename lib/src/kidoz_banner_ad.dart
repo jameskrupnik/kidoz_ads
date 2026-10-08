@@ -26,20 +26,32 @@ import 'package:kidoz_ads/src/platform.dart';
 /// and renders blank as a size mismatch first.
 @immutable
 class KidozBannerSize {
-  const KidozBannerSize({required this.width, required this.height});
+  /// Creates a size of [width] by [height] logical pixels.
+  ///
+  /// Both must be positive. Prefer the named constants: Kidoz publishes no
+  /// size table, so a custom size is even less certain to fill than they are.
+  const KidozBannerSize({required this.width, required this.height})
+      : assert(width > 0 && height > 0, 'A banner needs a positive size');
 
-  /// 320×50. The standard phone banner, and the size Kidoz's own sample uses.
+  /// The 320×50 phone banner, and the size Kidoz's own sample uses.
   static const KidozBannerSize banner = KidozBannerSize(width: 320, height: 50);
 
-  /// 728×90. Tablets only; it will not fit a phone in portrait. Unconfirmed.
+  /// The 728×90 leaderboard, for tablets only.
+  ///
+  /// It will not fit a phone in portrait. Unconfirmed to fill.
   static const KidozBannerSize leaderboard =
       KidozBannerSize(width: 728, height: 90);
 
-  /// 300×250. The in-feed rectangle. Unconfirmed.
+  /// The 300×250 in-feed rectangle.
+  ///
+  /// Unconfirmed to fill.
   static const KidozBannerSize mediumRectangle =
       KidozBannerSize(width: 300, height: 250);
 
+  /// The width, in logical pixels.
   final double width;
+
+  /// The height, in logical pixels.
   final double height;
 
   @override
@@ -58,6 +70,7 @@ class KidozBannerSize {
 /// Events from a [KidozBannerAd].
 @immutable
 class KidozBannerListener {
+  /// Creates a listener in which every callback is optional.
   const KidozBannerListener({
     this.onAdLoaded,
     this.onAdFailedToLoad,
@@ -65,11 +78,22 @@ class KidozBannerListener {
     this.onAdClosed,
   });
 
+  /// Called when a creative has loaded into the banner.
   final VoidCallback? onAdLoaded;
+
+  /// Called when the banner has nothing to show.
+  ///
+  /// Covers show failures as well as load failures: a Kidoz banner reports
+  /// both through one listener, and either way the slot is empty. Check
+  /// [KidozAdError.isNoFill] to tell an empty auction from a fault.
   final void Function(KidozAdError error)? onAdFailedToLoad;
+
+  /// Called when Kidoz counts an impression for the banner.
   final VoidCallback? onAdImpression;
 
-  /// The banner took itself down. Kidoz creatives can carry a close affordance,
+  /// Called when the banner took itself down.
+  ///
+  /// Kidoz creatives can carry a close affordance,
   /// which AdMob's banners do not — so unlike every other network in this
   /// family, a banner slot here can empty itself while the widget is still
   /// mounted. Collapse the slot on this, not just on [onAdFailedToLoad].
@@ -84,6 +108,10 @@ class KidozBannerListener {
 /// you want it to disappear — [KidozBannerListener.onAdFailedToLoad] and
 /// [KidozBannerListener.onAdClosed] are both signals that it should.
 class KidozBannerAd extends StatefulWidget {
+  /// Creates a banner of [size] that reports to [listener].
+  ///
+  /// Throws a [StateError] when first built if [KidozAds.initialize] has not
+  /// completed, since both SDKs silently ignore a banner loaded before then.
   const KidozBannerAd({
     this.size = KidozBannerSize.banner,
     this.listener,
@@ -108,7 +136,7 @@ class _KidozBannerAdState extends State<KidozBannerAd> {
   @override
   void initState() {
     super.initState();
-    KidozAds.instance.debugAssertInitialized('banner ad');
+    ensureKidozInitialized('banner ad');
     _adId = KidozAdsPlatform.registerAd(_handleEvent);
   }
 
@@ -132,7 +160,7 @@ class _KidozBannerAdState extends State<KidozBannerAd> {
       // either way the slot is empty and should collapse. They are merged
       // here rather than given a callback nobody would implement separately.
       case 'showFailed':
-        listener.onAdFailedToLoad?.call(KidozAdError.fromMap(arguments));
+        listener.onAdFailedToLoad?.call(kidozAdErrorFromMap(arguments));
       case 'impression':
         listener.onAdImpression?.call();
       case 'closed':

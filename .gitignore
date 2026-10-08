@@ -24,3 +24,10 @@ ios/Flutter/Flutter.podspec
 
 # adopt.sh rollback backup (local only)
 analysis_options.yaml.pre-standard
+
+# Test coverage output
+coverage/
+
+# Swift Package Manager
+ios/kidoz_ads/.build/
+ios/kidoz_ads/.swiftpm/

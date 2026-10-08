@@ -27,7 +27,9 @@ import 'package:kidoz_ads/src/platform.dart';
 class KidozAds {
   KidozAds._();
 
-  /// The one instance. Kidoz's SDKs are process-global singletons — the native
+  /// The one instance.
+  ///
+  /// Kidoz's SDKs are process-global singletons — the native
   /// entry point is literally `Kidoz.instance` on iOS and a static `Kidoz` on
   /// Android — so pretending otherwise here would only invite two
   /// initialisations with two publisher ids.
@@ -76,8 +78,7 @@ class KidozAds {
     }();
   }
 
-  /// Forgets that the SDK was ever started, so the next [initialize] runs for
-  /// real.
+  /// Forgets that the SDK was ever started, so the next [initialize] is real.
   ///
   /// This exists because [instance] is process-wide: without it, the first test
   /// in a suite initializes and every later one silently gets the cached
@@ -89,15 +90,19 @@ class KidozAds {
     _initialization = null;
     _initialized = false;
   }
+}
 
-  /// Throws unless the SDK is up, with a message that says which call is
-  /// missing rather than surfacing as a generic load failure.
-  void debugAssertInitialized(String what) {
-    if (_initialized) return;
-    throw StateError(
-      'KidozAds.instance.initialize() must complete before loading a $what. '
-      'Both Kidoz SDKs silently ignore a load issued before init, which looks '
-      'exactly like no fill, so this is checked here instead.',
-    );
-  }
+/// Throws unless the SDK is up, with a message that says which call is missing
+/// rather than surfacing as a generic load failure.
+///
+/// Not exported. It throws in release builds too, so it is not a `debug`
+/// member, and it is the loaders' guard rather than anything a caller needs —
+/// a caller asks [KidozAds.isInitialized].
+void ensureKidozInitialized(String what) {
+  if (KidozAds.instance.isInitialized) return;
+  throw StateError(
+    'KidozAds.instance.initialize() must complete before loading a $what. '
+    'Both Kidoz SDKs silently ignore a load issued before init, which looks '
+    'exactly like no fill, so this is checked here instead.',
+  );
 }

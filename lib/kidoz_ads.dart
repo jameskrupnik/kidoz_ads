@@ -48,7 +48,7 @@
 /// Not affiliated with or endorsed by Kidoz.
 library;
 
-export 'src/kidoz_ad_error.dart' show KidozAdError;
+export 'src/kidoz_ad_error.dart' show KidozAdError, KidozAdErrorCode;
 export 'src/kidoz_ads_base.dart' show KidozAds;
 export 'src/kidoz_banner_ad.dart'
     show KidozBannerAd, KidozBannerListener, KidozBannerSize;

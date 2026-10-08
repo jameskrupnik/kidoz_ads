@@ -10,10 +10,12 @@ with no mediation layer.
 - One method channel, with ads keyed on an id minted in Dart — Kidoz's load
   entry points are static and hand the ad to a callback, so there is no object
   to key on until after the load fires.
-- Error codes are this package's own (`NO_FILL`, `SHOW_FAILED`,
-  `NOT_INITIALIZED`, `INTERNAL_ERROR`) and assigned from *which callback
-  fired*. `KidozError` carries a message and no status enum, so the
+- Error codes are this package's own `KidozAdErrorCode` enum (`noFill`,
+  `showFailed`, `notInitialized`, `internalError`) and assigned from *which
+  callback fired*. `KidozError` carries a message and no status enum, so the
   distinction a chain needs does not exist in the SDK to pass through.
+- `fullScreenContentCallback` is declared on each ad type with that type, so
+  a rewarded ad's callbacks receive a `KidozRewardedAd`, not the base class.
 - Full-screen callback names follow `google_mobile_ads` and `inmobi_ads`
   rather than Kidoz's own, so an app running several networks behind one
   interface reads the same for every leg.
@@ -25,12 +27,15 @@ with no mediation layer.
   a truncated IP, a CMP's consent does not reach a direct SDK, and the only
   lever left is whether `initialize` is called.
 
-**Both native halves compile inside a consuming app and the iOS half is
-inside a submitted App Store build, but neither has been observed serving an
-ad.** That needs publisher credentials, which come from Kidoz onboarding, and
-Kidoz has no test inventory — every verification impression is a real one. See
-the Status table in the README for the two things most likely to need
-correcting on first device run.
+- Interstitial and rewarded calls that the native side refuses (for
+  example Android's `NO_ACTIVITY` when the engine has no activity) now reach
+  `onAdFailedToLoad` / `onAdFailedToShowFullScreenContent` with
+  `internalError`. Before this they escaped as uncaught async errors and no
+  callback ran. `dispose()` no longer throws.
+- iOS banners are now freed when their widget goes away. `KidozBannerView`
+  holds its delegate strongly, and the platform view was its own delegate, so
+  neither was ever released and `close()` never ran.
 
-No Swift Package Manager support, and it cannot be added here: `KidozSDK` is
-distributed through CocoaPods and Maven only.
+iOS builds with Swift Package Manager or CocoaPods. Both pin `KidozSDK`
+10.1.5, from Kidoz's own Swift package or its pod, and both resolve to the
+same binary.

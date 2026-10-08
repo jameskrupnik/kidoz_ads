@@ -27,6 +27,7 @@ typedef KidozAdEventHandler = void Function(
 /// ad object to the callback rather than returning it, so there is no moment
 /// at which native could mint an id and return it synchronously.
 abstract final class KidozAdsPlatform {
+  /// The channel both native halves listen on.
   static const MethodChannel channel = MethodChannel('kidoz_ads');
 
   static final Map<int, KidozAdEventHandler> _handlers =
@@ -43,7 +44,9 @@ abstract final class KidozAdsPlatform {
     return adId;
   }
 
-  /// Stops routing events for [adId]. Safe to call more than once.
+  /// Stops routing events for [adId].
+  ///
+  /// Safe to call more than once.
   static void unregisterAd(int adId) => _handlers.remove(adId);
 
   static void _ensureListening() {
