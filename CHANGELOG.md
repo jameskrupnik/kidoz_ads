@@ -2,40 +2,28 @@
 
 ## 0.1.0
 
-Initial cut. Banner, interstitial and rewarded ads over the Kidoz native SDKs
-with no mediation layer.
+First release.
 
-- Android against `net.kidoz.sdk:kidoz-android-native:10.1.9`, iOS against
-  `KidozSDK` 10.1.5, both pinned exactly.
-- One method channel, with ads keyed on an id minted in Dart — Kidoz's load
-  entry points are static and hand the ad to a callback, so there is no object
-  to key on until after the load fires.
-- Error codes are this package's own `KidozAdErrorCode` enum (`noFill`,
-  `showFailed`, `notInitialized`, `internalError`) and assigned from *which
-  callback fired*. Kidoz's own integer code has no published meaning, so it
-  is passed through as `KidozAdError.nativeCode` for logs only.
-- `fullScreenContentCallback` is declared on each ad type with that type, so
-  a rewarded ad's callbacks receive a `KidozRewardedAd`, not the base class.
-- Full-screen callback names follow `google_mobile_ads` and `inmobi_ads`
-  rather than Kidoz's own, so an app running several networks behind one
-  interface reads the same for every leg.
-
-- An example app with a button per format, which reports missing credentials
-  rather than throwing so it opens on a machine with no Kidoz account.
-- A README section on consent in the EEA. The SDK's lack of a consent API is
-  correct for personalisation and is not the end of the matter: Kidoz collects
-  a truncated IP, a CMP's consent does not reach a direct SDK, and the only
-  lever left is whether `initialize` is called.
-
-- Interstitial and rewarded calls that the native side refuses (for
-  example Android's `NO_ACTIVITY` when the engine has no activity) now reach
-  `onAdFailedToLoad` / `onAdFailedToShowFullScreenContent` with
-  `internalError`. Before this they escaped as uncaught async errors and no
-  callback ran. `dispose()` no longer throws.
-- iOS banners are now freed when their widget goes away. `KidozBannerView`
-  holds its delegate strongly, and the platform view was its own delegate, so
-  neither was ever released and `close()` never ran.
-
-iOS builds with Swift Package Manager or CocoaPods. Both pin `KidozSDK`
-10.1.5, from Kidoz's own Swift package or its pod, and both resolve to the
-same binary.
+- Kidoz SDK on Android (`net.kidoz.sdk:kidoz-android-native:10.1.9`) and iOS
+  (`KidozSDK` 10.1.5), pinned exactly on Gradle, CocoaPods and Swift Package
+  Manager, with no mediation layer
+- `KidozAds.initialize` with the publisher id and security token; no
+  placement ids anywhere
+- `KidozRewardedAd`: load, show, and a reward callback that fires before
+  dismissal and survives a double-tapped show
+- `KidozInterstitialAd`: load, show
+- `KidozBannerAd`: a widget, hybrid composition on Android, following the
+  ambient text direction, with `onAdClosed` for creatives that close
+  themselves
+- `fullScreenContentCallback` typed to the ad's own class, so handlers get a
+  `KidozRewardedAd` or `KidozInterstitialAd` without a cast, and callback
+  names that match `google_mobile_ads` and `inmobi_ads`
+- `KidozAdError` with this package's `KidozAdErrorCode` (`noFill`,
+  `showFailed`, `notInitialized`, `internalError`), the same on both
+  platforms, plus Kidoz's own number as `nativeCode` for logs
+- Loads before initialization, refused loads and refused shows arrive through
+  the callbacks rather than as unhandled exceptions or silence
+- R8 keep rules ship in `consumer-rules.pro`
+- A runnable example app that reports missing credentials instead of throwing
+- README notes on consent in the EEA, the Publisher Agreement, and rewarded
+  video for a child audience
