@@ -2,13 +2,14 @@ import Flutter
 import KidozSDK
 import UIKit
 
-/// This package's own error codes. Kidoz has none of its own to pass through.
+/// This package's own error codes.
 ///
-/// `KidozError` exposes a description and no status enum — Kidoz's own sample
-/// app reads nothing else from it. So the distinction a caller actually needs
-/// (is this an empty auction, or did something break?) has to be made here,
-/// from *which delegate callback fired*, because that is the only place the
-/// information exists. The names match the Android side exactly, so
+/// `KidozError` carries a message and an integer `errorCode`, but Kidoz
+/// documents no table of what the numbers mean and its own sample app never
+/// reads them. So the distinction a caller actually needs (is this an empty
+/// auction, or did something break?) is made here, from *which delegate
+/// callback fired*, and the raw number is passed through alongside as
+/// `nativeCode` for logs. The names match the Android side exactly, so
 /// `KidozAdError.code` means one thing in Dart.
 enum KidozErrorCode {
     /// A load callback failed. The signal to fall through to another network.
@@ -21,12 +22,16 @@ enum KidozErrorCode {
     static let internalError = "INTERNAL_ERROR"
 }
 
-/// Flattens a Kidoz failure into the shape `KidozAdError.fromMap` expects.
+/// Flattens a Kidoz failure into the shape `kidozAdErrorFromMap` expects.
 func kidozEventMap(_ error: KidozError?, code: String) -> [String: Any?] {
-    return [
+    var map: [String: Any?] = [
         "code": code,
         "message": error?.description ?? "No message provided",
     ]
+    if let nativeCode = error?.errorCode {
+        map["nativeCode"] = nativeCode
+    }
+    return map
 }
 
 /// Bridges the Kidoz iOS SDK onto one method channel.

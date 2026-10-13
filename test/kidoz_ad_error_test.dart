@@ -38,6 +38,32 @@ void main() {
       expect(a, isNot(c));
     });
 
+    test("passes Kidoz's own number through as nativeCode", () {
+      final error = kidozAdErrorFromMap(const {
+        'code': 'NO_FILL',
+        'message': 'No ads',
+        'nativeCode': 3,
+      });
+      expect(error.nativeCode, 3);
+      expect(error.isNoFill, isTrue);
+      expect(error.toString(), 'KidozAdError(NO_FILL, Kidoz 3): No ads');
+    });
+
+    test('leaves nativeCode null when the plugin raised the error', () {
+      final error = kidozAdErrorFromMap(const {'code': 'NOT_INITIALIZED'});
+      expect(error.nativeCode, isNull);
+    });
+
+    test('nativeCode takes part in equality', () {
+      const a = KidozAdError(
+        code: KidozAdErrorCode.noFill,
+        message: 'x',
+        nativeCode: 1,
+      );
+      const b = KidozAdError(code: KidozAdErrorCode.noFill, message: 'x');
+      expect(a, isNot(b));
+    });
+
     test('keeps the wire name in toString for logs', () {
       const error = KidozAdError(
         code: KidozAdErrorCode.noFill,

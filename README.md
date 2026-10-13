@@ -216,9 +216,11 @@ package was written for shipped that reading and had to correct it.
 `KidozAdError.code` is a `KidozAdErrorCode` — `noFill`, `showFailed`,
 `notInitialized` or `internalError` — and `isNoFill` is the one most callers
 want: an empty auction, the signal to fall through to another network rather
-than retry. Kidoz's own `KidozError` has no status code, so these are assigned
-from *which callback fired*. `message` is Kidoz's text, passed through
-untouched and free to change between SDK releases.
+than retry. Kidoz's own `KidozError` carries an integer code, but Kidoz
+publishes no table of what the numbers mean, so these are assigned from *which
+callback fired*. The raw number is on `nativeCode` (null when the package
+raised the error itself) for logs and support tickets. `message` is Kidoz's
+text, passed through untouched and free to change between SDK releases.
 
 ### The reward carries no payload
 

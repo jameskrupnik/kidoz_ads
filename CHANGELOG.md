@@ -12,8 +12,8 @@ with no mediation layer.
   to key on until after the load fires.
 - Error codes are this package's own `KidozAdErrorCode` enum (`noFill`,
   `showFailed`, `notInitialized`, `internalError`) and assigned from *which
-  callback fired*. `KidozError` carries a message and no status enum, so the
-  distinction a chain needs does not exist in the SDK to pass through.
+  callback fired*. Kidoz's own integer code has no published meaning, so it
+  is passed through as `KidozAdError.nativeCode` for logs only.
 - `fullScreenContentCallback` is declared on each ad type with that type, so
   a rewarded ad's callbacks receive a `KidozRewardedAd`, not the base class.
 - Full-screen callback names follow `google_mobile_ads` and `inmobi_ads`

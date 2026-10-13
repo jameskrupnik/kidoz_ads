@@ -4,13 +4,14 @@ import 'package:flutter/foundation.dart';
 ///
 /// ### Why these are coarse, and why that is not an oversight
 ///
-/// Kidoz's `KidozError` exposes a message and nothing else that is documented
-/// or stable — the Android sample app calls `getMessage()` and `toString()`
-/// and never reads a status enum, because there is not one to read. InMobi and
-/// AdMob both hand back a named status code; Kidoz does not.
+/// Kidoz's `KidozError` carries a message and an integer code (`getCode()` on
+/// Android, `errorCode` on iOS), but Kidoz documents no table of what the
+/// numbers mean, and its sample apps never read them. InMobi and AdMob both
+/// hand back a named status code; Kidoz does not.
 ///
-/// So these values are assigned natively from the only distinctions the SDK
-/// actually makes reliably: *which callback fired*.
+/// So these values are assigned natively from the only distinction the SDK
+/// makes reliably: *which callback fired*. The raw number is passed through as
+/// [KidozAdError.nativeCode] for logs.
 ///
 /// More values may be added in a minor release if Kidoz starts reporting a
 /// distinction worth surfacing, so a `switch` over this enum should keep a
@@ -49,7 +50,11 @@ class KidozAdError {
   ///
   /// The plugin builds these itself; the constructor is public so that code
   /// consuming this package can construct one in its own tests.
-  const KidozAdError({required this.code, required this.message});
+  const KidozAdError({
+    required this.code,
+    required this.message,
+    this.nativeCode,
+  });
 
   /// Which of the distinctions Kidoz reliably makes this failure falls under.
   final KidozAdErrorCode code;
@@ -58,6 +63,13 @@ class KidozAdError {
   ///
   /// Do not branch on this; branch on [code].
   final String message;
+
+  /// Kidoz's own integer error code, when the failure came from the SDK.
+  ///
+  /// Null for failures this package raised itself, such as
+  /// [KidozAdErrorCode.notInitialized]. Kidoz publishes no table of these
+  /// values, so log it to quote in a support ticket rather than branching on it.
+  final int? nativeCode;
 
   /// Whether the request failed without an ad to show.
   ///
@@ -70,14 +82,19 @@ class KidozAdError {
   bool get isNoFill => code == KidozAdErrorCode.noFill;
 
   @override
-  String toString() => 'KidozAdError(${code._wireName}): $message';
+  String toString() => nativeCode == null
+      ? 'KidozAdError(${code._wireName}): $message'
+      : 'KidozAdError(${code._wireName}, Kidoz $nativeCode): $message';
 
   @override
   bool operator ==(Object other) =>
-      other is KidozAdError && other.code == code && other.message == message;
+      other is KidozAdError &&
+      other.code == code &&
+      other.message == message &&
+      other.nativeCode == nativeCode;
 
   @override
-  int get hashCode => Object.hash(code, message);
+  int get hashCode => Object.hash(code, message, nativeCode);
 }
 
 /// Builds an error from the raw platform-channel payload.
@@ -96,5 +113,6 @@ KidozAdError kidozAdErrorFromMap(Map<Object?, Object?> map) {
       orElse: () => KidozAdErrorCode.internalError,
     ),
     message: map['message'] as String? ?? 'No message provided',
+    nativeCode: (map['nativeCode'] as num?)?.toInt(),
   );
 }

@@ -9,13 +9,13 @@ import net.kidoz.sdk.KidozError
 internal typealias EventSink = (adId: Int, event: String, arguments: Map<String, Any?>) -> Unit
 
 /**
- * This package's own error codes. Kidoz has none of its own to pass through.
+ * This package's own error codes.
  *
- * `KidozError` exposes `getMessage()` and `toString()` and no status enum —
- * Kidoz's own sample app reads nothing else from it. So the distinction a
- * caller actually needs (is this an empty auction, or did something break?)
- * has to be made here, from *which callback fired*, because that is the only
- * place the information exists.
+ * `KidozError` carries `getMessage()` and an integer `getCode()`, but Kidoz
+ * documents no table of what the numbers mean and its own sample app never
+ * reads them. So the distinction a caller actually needs (is this an empty
+ * auction, or did something break?) is made here, from *which callback fired*,
+ * and the raw number is passed through alongside as `nativeCode` for logs.
  */
 internal object KidozErrorCode {
     /** A load callback failed. The signal to fall through to another network. */
@@ -32,14 +32,15 @@ internal object KidozErrorCode {
 }
 
 /**
- * Kidoz's failure, flattened into the shape `KidozAdError.fromMap` expects.
+ * Kidoz's failure, flattened into the shape `kidozAdErrorFromMap` expects.
  *
  * [code] is supplied by the call site rather than read off the error, for the
- * reason given on [KidozErrorCode]. The message is passed through untouched and
- * is documented in Dart as something never to branch on.
+ * reason given on [KidozErrorCode]. The message and Kidoz's own number are
+ * passed through untouched and documented in Dart as never to branch on.
  */
 internal fun KidozError.toEventMap(code: String): Map<String, Any?> = mapOf(
     "code" to code,
+    "nativeCode" to this.code,
     // Non-null receiver, because every Android callback declares KidozError
     // non-null — verified by the compiler, which rejected the nullable version
     // outright. iOS is the same. getMessage() itself is still nullable and has
