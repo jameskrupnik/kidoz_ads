@@ -35,7 +35,9 @@ import net.kidoz.sdk.KidozInitializationListener
  *  - Kidoz's callbacks are not documented as main-thread-only, but its views
  *    are WebViews. Every entry point hops to the main looper rather than
  *    trusting the caller, because Flutter guarantees method calls arrive on the
- *    platform thread and says nothing about which thread that is.
+ *    platform thread and says nothing about which thread that is. SDK
+ *    callbacks hop there too before touching [fullScreenAds], so the map is
+ *    only ever read or written on the main looper.
  */
 class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHandler {
 
@@ -122,22 +124,30 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
             return
         }
 
+        // The listener is not documented as main-thread-only or as firing
+        // once, and a MethodChannel.Result throws if it is answered twice. So
+        // the reply hops to the main looper and only the first one is sent.
+        var replied = false
+        fun reply(send: MethodChannel.Result.() -> Unit) {
+            mainHandler.post {
+                if (!replied) {
+                    replied = true
+                    result.send()
+                }
+            }
+        }
+
         mainHandler.post {
             Kidoz.initialize(
                 activity,
                 publisherId,
                 securityToken,
                 object : KidozInitializationListener {
-                    override fun onInitSuccess() {
-                        result.success(null)
-                    }
+                    override fun onInitSuccess() = reply { success(null) }
 
                     override fun onInitError(error: KidozError) {
-                        result.error(
-                            "INIT_FAILED",
-                            error.message ?: "Kidoz SDK failed to initialize",
-                            null,
-                        )
+                        val message = error.message ?: "Kidoz SDK failed to initialize"
+                        reply { this.error("INIT_FAILED", message, null) }
                     }
                 },
             )
@@ -226,7 +236,7 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
         KidozInterstitialAdCallback {
 
         override fun onAdLoaded(ad: KidozInterstitialAd) {
-            fullScreenAds[adId] = ad
+            mainHandler.post { fullScreenAds[adId] = ad }
             sendEvent(adId, "loaded")
         }
 
@@ -236,7 +246,7 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
         override fun onAdShown(ad: KidozInterstitialAd) = sendEvent(adId, "shown")
 
         override fun onAdFailedToShow(ad: KidozInterstitialAd, error: KidozError) {
-            fullScreenAds.remove(adId)
+            mainHandler.post { fullScreenAds.remove(adId) }
             sendEvent(adId, "showFailed", error.toEventMap(KidozErrorCode.SHOW_FAILED))
         }
 
@@ -246,7 +256,7 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
             // Kidoz's own sample nulls its reference here, and the SDK requires
             // a fresh load to show again. Dropping it now means a stray show()
             // reports "Ad is gone" rather than failing silently inside the SDK.
-            fullScreenAds.remove(adId)
+            mainHandler.post { fullScreenAds.remove(adId) }
             sendEvent(adId, "closed")
         }
     }
@@ -255,7 +265,7 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
     private inner class RewardedCallback(private val adId: Int) : KidozRewardedAdCallback {
 
         override fun onAdLoaded(ad: KidozRewardedAd) {
-            fullScreenAds[adId] = ad
+            mainHandler.post { fullScreenAds[adId] = ad }
             sendEvent(adId, "loaded")
         }
 
@@ -265,7 +275,7 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
         override fun onAdShown(ad: KidozRewardedAd) = sendEvent(adId, "shown")
 
         override fun onAdFailedToShow(ad: KidozRewardedAd, error: KidozError) {
-            fullScreenAds.remove(adId)
+            mainHandler.post { fullScreenAds.remove(adId) }
             sendEvent(adId, "showFailed", error.toEventMap(KidozErrorCode.SHOW_FAILED))
         }
 
@@ -281,7 +291,7 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
         override fun onRewardReceived(ad: KidozRewardedAd) = sendEvent(adId, "rewardReceived")
 
         override fun onAdClosed(ad: KidozRewardedAd) {
-            fullScreenAds.remove(adId)
+            mainHandler.post { fullScreenAds.remove(adId) }
             sendEvent(adId, "closed")
         }
     }
