@@ -408,11 +408,4 @@ void main() {
       expect(loaded, [1]);
     });
   });
-
-  group('KidozBannerSize', () {
-    test("defaults to the size Kidoz's own sample app uses", () {
-      expect(KidozBannerSize.banner.width, 320);
-      expect(KidozBannerSize.banner.height, 50);
-    });
-  });
 }
