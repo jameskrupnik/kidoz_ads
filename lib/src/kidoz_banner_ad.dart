@@ -21,6 +21,11 @@ import 'package:kidoz_ads/src/platform.dart';
 class KidozBannerAd extends StatefulWidget {
   /// Creates a banner of [size] that reports to [listener].
   ///
+  /// [size] is read once, when the native view is created; changing it on a
+  /// later rebuild resizes the slot but not the native banner inside it. Give
+  /// the widget a new [key] to load at a different size. [listener] is read
+  /// per event, so replacing it takes effect at once.
+  ///
   /// Throws a [StateError] when first built if [KidozAds.initialize] has not
   /// completed, since both SDKs silently ignore a banner loaded before then.
   const KidozBannerAd({
@@ -94,7 +99,9 @@ class _KidozBannerAdState extends State<KidozBannerAd> {
       width: widget.size.width,
       height: widget.size.height,
       child: switch (defaultTargetPlatform) {
-        TargetPlatform.android => _buildAndroidView(),
+        TargetPlatform.android => _buildAndroidView(
+          Directionality.maybeOf(context) ?? TextDirection.ltr,
+        ),
         TargetPlatform.iOS => UiKitView(
           viewType: _viewType,
           creationParams: _creationParams,
@@ -113,7 +120,10 @@ class _KidozBannerAdState extends State<KidozBannerAd> {
   /// Ad creatives are WebViews that need real touch targets and their own
   /// input connection. Virtual display — the cheaper mode — mangles both, which
   /// shows up as banners that render correctly and cannot be tapped.
-  Widget _buildAndroidView() {
+  ///
+  /// [layoutDirection] is the ambient one: creatives are web content, and an
+  /// RTL app should not have its banner forced LTR.
+  Widget _buildAndroidView(TextDirection layoutDirection) {
     return PlatformViewLink(
       viewType: _viewType,
       surfaceFactory: (context, controller) => AndroidViewSurface(
@@ -125,7 +135,7 @@ class _KidozBannerAdState extends State<KidozBannerAd> {
         final controller = PlatformViewsService.initExpensiveAndroidView(
           id: params.id,
           viewType: _viewType,
-          layoutDirection: TextDirection.ltr,
+          layoutDirection: layoutDirection,
           creationParams: _creationParams,
           creationParamsCodec: const StandardMessageCodec(),
           onFocus: () => params.onFocusChanged(true),

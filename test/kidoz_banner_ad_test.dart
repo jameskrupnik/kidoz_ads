@@ -16,6 +16,10 @@ void main() {
   /// The engine-side id of the most recently created platform view.
   int? lastViewId;
 
+  /// The layout direction the most recent Android `create` asked for, as the
+  /// engine encodes it: 0 for left-to-right, 1 for right-to-left.
+  int? lastDirection;
+
   Future<void> emit(
     int adId,
     String event, [
@@ -42,6 +46,7 @@ void main() {
         if (call.method == 'create') {
           final arguments = call.arguments as Map<Object?, Object?>;
           lastViewId = arguments['id'] as int?;
+          lastDirection = arguments['direction'] as int?;
           final params = arguments['params']! as Uint8List;
           created.add(
             const StandardMessageCodec().decodeMessage(
@@ -177,6 +182,22 @@ void main() {
         expect(created, [
           {'adId': 0, 'width': 320.0, 'height': 50.0},
         ]);
+      },
+      variant: TargetPlatformVariant.only(TargetPlatform.android),
+    );
+
+    testWidgets(
+      'lays the Android view out in the ambient text direction',
+      (tester) async {
+        await tester.pumpWidget(
+          const Directionality(
+            textDirection: TextDirection.rtl,
+            child: Center(child: KidozBannerAd()),
+          ),
+        );
+        await tester.pump();
+
+        expect(lastDirection, 1);
       },
       variant: TargetPlatformVariant.only(TargetPlatform.android),
     );
