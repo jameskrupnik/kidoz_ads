@@ -21,12 +21,14 @@ import net.kidoz.sdk.KidozInitializationListener
  *
  * Three constraints from the SDK shape everything here:
  *
- *  - **`Kidoz.initialize` takes an Activity, not an application Context**, and
- *    the SDK's own docs say to call it from `MainActivity.onCreate`. A Flutter
- *    plugin attaches to the engine before it attaches to an activity, so
- *    `initialize` has to fail loudly when no activity is bound rather than
- *    quietly passing the application context and getting a WebView that cannot
- *    present.
+ *  - **`Kidoz.initialize` takes a `Context`, and Kidoz's docs call it from
+ *    `MainActivity.onCreate`.** The SDK takes the application context for its
+ *    API client but hands the context it was given to its internal
+ *    `SDKContext`, and nothing documents whether an application context is
+ *    enough there. So this plugin passes the Activity, as Kidoz does, and
+ *    answers `NO_ACTIVITY` when none is attached rather than guessing. Every
+ *    full-screen load needs an Activity anyway, so the caller learns at
+ *    `initialize`, while it can still fall through to another network.
  *  - **The load entry points are static and hand the ad to the callback**
  *    (`KidozInterstitialAd.load(activity, callback)`), so there is no object to
  *    key on until `onAdLoaded` fires. Ads are therefore stashed in
@@ -112,13 +114,14 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
             return
         }
 
-        // Kidoz needs a foreground Activity to initialize. Reporting it here
-        // means the caller learns while it can still fall through to another
-        // network, rather than at the first load.
+        // Initialized from the Activity, as Kidoz documents; see the class
+        // comment. Reporting its absence here means the caller learns while it
+        // can still fall through to another network, rather than at the first
+        // load.
         val activity = this.activity ?: run {
             result.error(
                 "NO_ACTIVITY",
-                "Kidoz.initialize needs a foreground Activity; none is attached",
+                "Kidoz is initialized from a foreground Activity; none is attached",
                 null,
             )
             return
