@@ -1,9 +1,10 @@
 import 'dart:async' show unawaited;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kidoz_ads/src/kidoz_ad_error.dart';
 import 'package:kidoz_ads/src/kidoz_ads_base.dart';
+import 'package:kidoz_ads/src/kidoz_full_screen_ad_load_callback.dart';
+import 'package:kidoz_ads/src/kidoz_full_screen_content_callback.dart';
 import 'package:kidoz_ads/src/platform.dart';
 
 /// Called when the user finishes a rewarded video.
@@ -20,72 +21,6 @@ import 'package:kidoz_ads/src/platform.dart';
 /// from either of those will compile against a reward object that does not
 /// exist here. Grant a constant instead.
 typedef KidozOnUserEarnedReward = void Function(KidozRewardedAd ad);
-
-/// The outcome of asking for a full-screen ad.
-///
-/// Exactly one of [onAdLoaded] and [onAdFailedToLoad] runs, once.
-@immutable
-class KidozFullScreenAdLoadCallback<T extends KidozFullScreenAd> {
-  /// Creates a load callback that handles both outcomes.
-  const KidozFullScreenAdLoadCallback({
-    required this.onAdLoaded,
-    required this.onAdFailedToLoad,
-  });
-
-  /// Called with the ad once it is ready.
-  ///
-  /// It is yours to `show()` and then `dispose()`.
-  final void Function(T ad) onAdLoaded;
-
-  /// Called when no ad will be shown.
-  ///
-  /// [KidozAdError.isNoFill] distinguishes an empty auction from an actual
-  /// failure.
-  final void Function(KidozAdError error) onAdFailedToLoad;
-}
-
-/// Events from an ad that has already loaded.
-///
-/// The names follow `google_mobile_ads` and `inmobi_ads` rather than Kidoz's
-/// own (`onAdShown`, `onAdClosed`) **on purpose**: an app running more than one
-/// network puts these legs behind one interface, and a chain whose legs spell
-/// the same event three different ways is a chain nobody can read. The wire
-/// protocol underneath uses Kidoz's vocabulary; the translation happens once,
-/// natively.
-///
-/// [onAdDismissedFullScreenContent] is the terminal callback in the normal
-/// path — by the time it runs, any reward callback has already fired — and
-/// [onAdFailedToShowFullScreenContent] is terminal in the abnormal one.
-@immutable
-class KidozFullScreenContentCallback<T extends KidozFullScreenAd> {
-  /// Creates a content callback in which every handler is optional.
-  const KidozFullScreenContentCallback({
-    this.onAdShowedFullScreenContent,
-    this.onAdDismissedFullScreenContent,
-    this.onAdFailedToShowFullScreenContent,
-    this.onAdImpression,
-  });
-
-  /// Called when the ad has taken over the screen.
-  final void Function(T ad)? onAdShowedFullScreenContent;
-
-  /// Called when the user has closed the ad.
-  ///
-  /// Terminal in the normal path. Dispose the ad here; it cannot be shown again.
-  final void Function(T ad)? onAdDismissedFullScreenContent;
-
-  /// Called when a loaded ad could not be presented.
-  ///
-  /// Terminal in the abnormal path. The error's [KidozAdError.code] is [KidozAdErrorCode.showFailed] for a
-  /// failure Kidoz reported, or [KidozAdErrorCode.internalError] when the
-  /// plugin itself could not present (no view controller, or an ad that was
-  /// never loaded or already spent).
-  final void Function(T ad, KidozAdError error)?
-      onAdFailedToShowFullScreenContent;
-
-  /// Called when Kidoz counts an impression for the ad.
-  final void Function(T ad)? onAdImpression;
-}
 
 /// Shared machinery for the two full-screen formats.
 ///
