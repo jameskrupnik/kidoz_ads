@@ -20,7 +20,7 @@ internal class KidozBannerViewFactory(
 
     override fun create(context: Context, viewId: Int, args: Any?): PlatformView {
         val params = args as? Map<*, *> ?: emptyMap<String, Any?>()
-        return KidozBannerPlatformView(activityProvider(), params, sendEvent)
+        return KidozBannerPlatformView(context, activityProvider(), params, sendEvent)
     }
 }
 
@@ -51,20 +51,34 @@ internal class KidozBannerViewFactory(
  * reported earlier puts the banner at the wrong size on a second display or
  * after a fold. The banner itself is added with `MATCH_PARENT` so it fills
  * whatever it is given rather than fighting it.
+ *
+ * ### The container always exists
+ *
+ * It is built from the factory's context, never the Activity, because Flutter
+ * throws if [getView] returns null. With no Activity attached the container
+ * stays empty and the failure reaches Dart as a `loadFailed` event.
  */
 internal class KidozBannerPlatformView(
+    context: Context,
     activity: Activity?,
     params: Map<*, *>,
     private val sendEvent: EventSink,
 ) : PlatformView {
 
     private val adId = (params["adId"] as? Number)?.toInt() ?: -1
-    private val container: FrameLayout?
+    private val container: FrameLayout
     private var banner: KidozBannerView? = null
 
     init {
+        val density = context.resources.displayMetrics.density
+        val widthPx = (((params["width"] as? Number)?.toFloat() ?: 320f) * density).toInt()
+        val heightPx = (((params["height"] as? Number)?.toFloat() ?: 50f) * density).toInt()
+
+        container = FrameLayout(context).apply {
+            layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
+        }
+
         if (activity == null) {
-            container = null
             sendEvent(
                 adId,
                 "loadFailed",
@@ -74,14 +88,6 @@ internal class KidozBannerPlatformView(
                 ),
             )
         } else {
-            val density = activity.resources.displayMetrics.density
-            val widthPx = (((params["width"] as? Number)?.toFloat() ?: 320f) * density).toInt()
-            val heightPx = (((params["height"] as? Number)?.toFloat() ?: 50f) * density).toInt()
-
-            container = FrameLayout(activity).apply {
-                layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
-            }
-
             banner = KidozBannerView(activity).apply {
                 setBannerCallback(BannerCallback())
 
@@ -100,7 +106,7 @@ internal class KidozBannerPlatformView(
         }
     }
 
-    override fun getView(): View? = container
+    override fun getView(): View = container
 
     override fun dispose() {
         banner?.close()
