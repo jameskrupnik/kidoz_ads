@@ -90,6 +90,10 @@ class _HomePageState extends State<HomePage> {
           _note('Rewarded loaded.');
           ad.fullScreenContentCallback = KidozFullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) => ad.dispose(),
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              _note('Rewarded failed to show: ${error.code.name}');
+              ad.dispose();
+            },
           );
           // The reward carries no name and no amount — Kidoz has no dashboard
           // field for either. It is the signal that the video was watched;
