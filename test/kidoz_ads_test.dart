@@ -269,6 +269,27 @@ void main() {
       // reward carries no payload here, so "did it fire" is the whole signal.
       expect(order, ['closed']);
     });
+
+    test('a refused second show keeps the first reward callback', () async {
+      // A double-tap on a "watch ad" button calls show() twice. The second
+      // call is a no-op, so it must not replace — or, passing nothing, clear —
+      // the callback the user is about to earn a reward through.
+      final rewards = <String>[];
+      late KidozRewardedAd ad;
+      KidozRewardedAd.load(
+        adLoadCallback: KidozFullScreenAdLoadCallback(
+          onAdLoaded: (loaded) => ad = loaded,
+          onAdFailedToLoad: (_) => fail('should not fail'),
+        ),
+      );
+      await emit(0, 'loaded');
+
+      await ad.show(onUserEarnedReward: (_) => rewards.add('first'));
+      await expectLater(ad.show(), throwsAssertionError);
+      await emit(0, 'rewardReceived');
+
+      expect(rewards, ['first']);
+    });
   });
 
   group('before initialize', () {

@@ -182,9 +182,13 @@ class KidozRewardedAd extends KidozFullScreenAd {
   ///
   /// The reward callback fires before `onAdDismissedFullScreenContent`, so by
   /// the time dismissal arrives you already know whether one was earned.
+  ///
+  /// A call that [show] refuses — a second one, or one after [dispose] —
+  /// leaves the callback from the first in place. Replacing it would let a
+  /// double-tapped "watch ad" button drop the reward the user is earning.
   @override
   Future<void> show({KidozOnUserEarnedReward? onUserEarnedReward}) {
-    _onUserEarnedReward = onUserEarnedReward;
+    if (!_shown && !_disposed) _onUserEarnedReward = onUserEarnedReward;
     return super.show();
   }
 
