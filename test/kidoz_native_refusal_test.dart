@@ -19,12 +19,12 @@ void main() {
   ]) {
     return TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .handlePlatformMessage(
-      'kidoz_ads',
-      const StandardMethodCodec().encodeMethodCall(
-        MethodCall('onAdEvent', {...extra, 'adId': adId, 'event': event}),
-      ),
-      (_) {},
-    );
+          'kidoz_ads',
+          const StandardMethodCodec().encodeMethodCall(
+            MethodCall('onAdEvent', {...extra, 'adId': adId, 'event': event}),
+          ),
+          (_) {},
+        );
   }
 
   setUp(() async {
@@ -33,9 +33,9 @@ void main() {
     KidozAds.instance.debugReset();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(KidozAdsPlatform.channel, (call) async {
-      log.add(call);
-      return null;
-    });
+          log.add(call);
+          return null;
+        });
     await KidozAds.instance.initialize(
       publisherId: 'test-publisher',
       securityToken: 'test-token',
@@ -48,38 +48,40 @@ void main() {
     void refuse(List<String> methods, Exception Function() error) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(KidozAdsPlatform.channel, (call) async {
-        log.add(call);
-        if (methods.contains(call.method)) throw error();
-        return null;
-      });
+            log.add(call);
+            if (methods.contains(call.method)) throw error();
+            return null;
+          });
     }
 
     // Android answers a load with NO_ACTIVITY when the engine is running with
     // no activity attached. That reply used to escape as an uncaught async
     // error from an unawaited future, and the load callback never ran — so a
     // fallback chain waiting on it stalled instead of moving on.
-    test('a refused load reaches onAdFailedToLoad and releases the ad',
-        () async {
-      refuse(
-        ['loadFullScreenAd'],
-        () => PlatformException(code: 'NO_ACTIVITY', message: 'no activity'),
-      );
-      final errors = <KidozAdError>[];
+    test(
+      'a refused load reaches onAdFailedToLoad and releases the ad',
+      () async {
+        refuse(
+          ['loadFullScreenAd'],
+          () => PlatformException(code: 'NO_ACTIVITY', message: 'no activity'),
+        );
+        final errors = <KidozAdError>[];
 
-      KidozInterstitialAd.load(
-        adLoadCallback: KidozFullScreenAdLoadCallback(
-          onAdLoaded: (_) => fail('should not load'),
-          onAdFailedToLoad: errors.add,
-        ),
-      );
-      await pumpEventQueue();
+        KidozInterstitialAd.load(
+          adLoadCallback: KidozFullScreenAdLoadCallback(
+            onAdLoaded: (_) => fail('should not load'),
+            onAdFailedToLoad: errors.add,
+          ),
+        );
+        await pumpEventQueue();
 
-      expect(errors, hasLength(1));
-      expect(errors.single.code, KidozAdErrorCode.internalError);
-      expect(errors.single.isNoFill, isFalse);
-      expect(errors.single.message, contains('no activity'));
-      expect(log.last.method, 'disposeAd');
-    });
+        expect(errors, hasLength(1));
+        expect(errors.single.code, KidozAdErrorCode.internalError);
+        expect(errors.single.isNoFill, isFalse);
+        expect(errors.single.message, contains('no activity'));
+        expect(log.last.method, 'disposeAd');
+      },
+    );
 
     test('a load with no native half fails instead of throwing', () async {
       // The release that follows a failed load must not throw either.

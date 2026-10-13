@@ -17,12 +17,12 @@ void main() {
   ]) {
     return TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .handlePlatformMessage(
-      'kidoz_ads',
-      const StandardMethodCodec().encodeMethodCall(
-        MethodCall('onAdEvent', {...extra, 'adId': adId, 'event': event}),
-      ),
-      (_) {},
-    );
+          'kidoz_ads',
+          const StandardMethodCodec().encodeMethodCall(
+            MethodCall('onAdEvent', {...extra, 'adId': adId, 'event': event}),
+          ),
+          (_) {},
+        );
   }
 
   setUp(() async {
@@ -31,9 +31,9 @@ void main() {
     KidozAds.instance.debugReset();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(KidozAdsPlatform.channel, (call) async {
-      log.add(call);
-      return null;
-    });
+          log.add(call);
+          return null;
+        });
     await KidozAds.instance.initialize(
       publisherId: 'test-publisher',
       securityToken: 'test-token',
@@ -63,13 +63,15 @@ void main() {
       log.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(KidozAdsPlatform.channel, (call) async {
-        log.add(call);
-        throw PlatformException(code: 'INIT_FAILED');
-      });
+            log.add(call);
+            throw PlatformException(code: 'INIT_FAILED');
+          });
 
       expect(
-        await KidozAds.instance
-            .initialize(publisherId: 'p', securityToken: 't'),
+        await KidozAds.instance.initialize(
+          publisherId: 'p',
+          securityToken: 't',
+        ),
         isFalse,
       );
       expect(KidozAds.instance.isInitialized, isFalse);
@@ -87,13 +89,15 @@ void main() {
       log.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(KidozAdsPlatform.channel, (call) async {
-        log.add(call);
-        throw MissingPluginException();
-      });
+            log.add(call);
+            throw MissingPluginException();
+          });
 
       expect(
-        await KidozAds.instance
-            .initialize(publisherId: 'p', securityToken: 't'),
+        await KidozAds.instance.initialize(
+          publisherId: 'p',
+          securityToken: 't',
+        ),
         isFalse,
       );
       await KidozAds.instance.initialize(publisherId: 'p', securityToken: 't');
@@ -225,28 +229,30 @@ void main() {
       expect(order, ['rewarded', 'closed']);
     });
 
-    test('content callbacks receive the rewarded ad, not the base type',
-        () async {
-      late KidozRewardedAd ad;
-      KidozRewardedAd? shown;
-      KidozRewardedAd.load(
-        adLoadCallback: KidozFullScreenAdLoadCallback(
-          onAdLoaded: (loaded) => ad = loaded,
-          onAdFailedToLoad: (_) => fail('should not fail'),
-        ),
-      );
-      await emit(0, 'loaded');
+    test(
+      'content callbacks receive the rewarded ad, not the base type',
+      () async {
+        late KidozRewardedAd ad;
+        KidozRewardedAd? shown;
+        KidozRewardedAd.load(
+          adLoadCallback: KidozFullScreenAdLoadCallback(
+            onAdLoaded: (loaded) => ad = loaded,
+            onAdFailedToLoad: (_) => fail('should not fail'),
+          ),
+        );
+        await emit(0, 'loaded');
 
-      // Typed explicitly: with a field typed to the base class this compiled
-      // and then threw a TypeError when the event arrived.
-      ad.fullScreenContentCallback =
-          KidozFullScreenContentCallback<KidozRewardedAd>(
-        onAdShowedFullScreenContent: (shownAd) => shown = shownAd,
-      );
-      await emit(0, 'shown');
+        // Typed explicitly: with a field typed to the base class this compiled
+        // and then threw a TypeError when the event arrived.
+        ad.fullScreenContentCallback =
+            KidozFullScreenContentCallback<KidozRewardedAd>(
+              onAdShowedFullScreenContent: (shownAd) => shown = shownAd,
+            );
+        await emit(0, 'shown');
 
-      expect(shown, same(ad));
-    });
+        expect(shown, same(ad));
+      },
+    );
 
     test('a closure with no reward reports only the closure', () async {
       final order = <String>[];
@@ -328,13 +334,15 @@ void main() {
       expect(log.last.arguments, {'adId': 0});
     });
 
-    test('a second show is refused, because Kidoz ads are single-use',
-        () async {
-      final ad = await loadedInterstitial();
-      await ad.show();
+    test(
+      'a second show is refused, because Kidoz ads are single-use',
+      () async {
+        final ad = await loadedInterstitial();
+        await ad.show();
 
-      await expectLater(ad.show(), throwsAssertionError);
-    });
+        await expectLater(ad.show(), throwsAssertionError);
+      },
+    );
 
     test('a show after dispose is refused', () async {
       final ad = await loadedInterstitial();

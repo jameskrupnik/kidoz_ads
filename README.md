@@ -85,7 +85,9 @@ dependencies:
   kidoz_ads: ^0.1.0
 ```
 
-Requires Flutter 3.24 and Dart 3.6. Android `minSdk` 21, iOS 13.
+Requires Flutter 3.44 and Dart 3.12: the Swift package depends on the
+`FlutterFramework` package that Flutter only provides from 3.44. Android
+`minSdk` 21, iOS 13.
 
 Android pulls `net.kidoz.sdk:kidoz-android-native:10.1.9` from Maven Central;
 iOS pulls `KidozSDK` 10.1.5 from Swift Package Manager or CocoaPods. Both are

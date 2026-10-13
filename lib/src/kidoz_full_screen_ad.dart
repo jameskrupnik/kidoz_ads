@@ -80,8 +80,9 @@ abstract class KidozFullScreenAd {
     _disposed = true;
     KidozAdsPlatform.unregisterAd(_adId);
     try {
-      await KidozAdsPlatform.channel
-          .invokeMethod<void>('disposeAd', {'adId': _adId});
+      await KidozAdsPlatform.channel.invokeMethod<void>('disposeAd', {
+        'adId': _adId,
+      });
     } on PlatformException {
       // Nothing to release, or nothing left to release it with.
     } on MissingPluginException {
@@ -150,10 +151,7 @@ abstract class KidozFullScreenAd {
 /// can only get by watching an ad is a design decision with consequences, and
 /// the fact that the format is available here is not an argument for using it.
 class KidozRewardedAd extends KidozFullScreenAd {
-  KidozRewardedAd._({
-    required KidozFullScreenAdLoadCallback<KidozRewardedAd> loadCallback,
-  })  : _loadCallback = loadCallback,
-        super._();
+  KidozRewardedAd._({required this._loadCallback}) : super._();
 
   final KidozFullScreenAdLoadCallback<KidozRewardedAd> _loadCallback;
 
@@ -174,8 +172,9 @@ class KidozRewardedAd extends KidozFullScreenAd {
     required KidozFullScreenAdLoadCallback<KidozRewardedAd> adLoadCallback,
   }) {
     ensureKidozInitialized('rewarded ad');
-    KidozRewardedAd._(loadCallback: adLoadCallback)
-        ._requestLoad(rewarded: true);
+    KidozRewardedAd._(
+      loadCallback: adLoadCallback,
+    )._requestLoad(rewarded: true);
   }
 
   /// Presents the ad, reporting the reward to [onUserEarnedReward].
@@ -216,10 +215,7 @@ class KidozRewardedAd extends KidozFullScreenAd {
 
 /// A full-screen interstitial ad.
 class KidozInterstitialAd extends KidozFullScreenAd {
-  KidozInterstitialAd._({
-    required KidozFullScreenAdLoadCallback<KidozInterstitialAd> loadCallback,
-  })  : _loadCallback = loadCallback,
-        super._();
+  KidozInterstitialAd._({required this._loadCallback}) : super._();
 
   final KidozFullScreenAdLoadCallback<KidozInterstitialAd> _loadCallback;
 
@@ -227,7 +223,7 @@ class KidozInterstitialAd extends KidozFullScreenAd {
   ///
   /// Set this before calling [show].
   KidozFullScreenContentCallback<KidozInterstitialAd>?
-      fullScreenContentCallback;
+  fullScreenContentCallback;
 
   /// Requests an interstitial ad.
   ///
@@ -236,8 +232,9 @@ class KidozInterstitialAd extends KidozFullScreenAd {
     required KidozFullScreenAdLoadCallback<KidozInterstitialAd> adLoadCallback,
   }) {
     ensureKidozInitialized('interstitial ad');
-    KidozInterstitialAd._(loadCallback: adLoadCallback)
-        ._requestLoad(rewarded: false);
+    KidozInterstitialAd._(
+      loadCallback: adLoadCallback,
+    )._requestLoad(rewarded: false);
   }
 
   @override
@@ -272,8 +269,10 @@ void _dispatchContentEvent<T extends KidozFullScreenAd>(
     case 'shown':
       callback.onAdShowedFullScreenContent?.call(ad);
     case 'showFailed':
-      callback.onAdFailedToShowFullScreenContent
-          ?.call(ad, kidozAdErrorFromMap(arguments));
+      callback.onAdFailedToShowFullScreenContent?.call(
+        ad,
+        kidozAdErrorFromMap(arguments),
+      );
     case 'closed':
       callback.onAdDismissedFullScreenContent?.call(ad);
     case 'impression':

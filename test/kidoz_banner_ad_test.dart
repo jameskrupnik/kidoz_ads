@@ -45,8 +45,9 @@ void main() {
           final params = arguments['params']! as Uint8List;
           created.add(
             const StandardMessageCodec().decodeMessage(
-              ByteData.sublistView(params),
-            ) as Map<Object?, Object?>,
+                  ByteData.sublistView(params),
+                )
+                as Map<Object?, Object?>,
           );
         }
         return null;
@@ -62,9 +63,9 @@ void main() {
   });
 
   Widget host(Widget child) => Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(child: child),
-      );
+    textDirection: TextDirection.ltr,
+    child: Center(child: child),
+  );
 
   group('KidozBannerAd', () {
     testWidgets('throws when the SDK has not been initialized', (

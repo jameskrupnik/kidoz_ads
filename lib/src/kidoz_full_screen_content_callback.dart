@@ -39,7 +39,7 @@ class KidozFullScreenContentCallback<T extends KidozFullScreenAd> {
   /// [KidozAdErrorCode.internalError] when the plugin itself could not present
   /// (no view controller, or an ad that was never loaded or already spent).
   final void Function(T ad, KidozAdError error)?
-      onAdFailedToShowFullScreenContent;
+  onAdFailedToShowFullScreenContent;
 
   /// Called when Kidoz counts an impression for the ad.
   final void Function(T ad)? onAdImpression;

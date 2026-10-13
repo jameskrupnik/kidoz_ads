@@ -22,7 +22,7 @@ class KidozBannerSize {
   /// Both must be positive. Prefer the named constants: Kidoz publishes no
   /// size table, so a custom size is even less certain to fill than they are.
   const KidozBannerSize({required this.width, required this.height})
-      : assert(width > 0 && height > 0, 'A banner needs a positive size');
+    : assert(width > 0 && height > 0, 'A banner needs a positive size');
 
   /// The 320×50 phone banner, and the size Kidoz's own sample uses.
   static const KidozBannerSize banner = KidozBannerSize(width: 320, height: 50);
@@ -30,14 +30,18 @@ class KidozBannerSize {
   /// The 728×90 leaderboard, for tablets only.
   ///
   /// It will not fit a phone in portrait. Unconfirmed to fill.
-  static const KidozBannerSize leaderboard =
-      KidozBannerSize(width: 728, height: 90);
+  static const KidozBannerSize leaderboard = KidozBannerSize(
+    width: 728,
+    height: 90,
+  );
 
   /// The 300×250 in-feed rectangle.
   ///
   /// Unconfirmed to fill.
-  static const KidozBannerSize mediumRectangle =
-      KidozBannerSize(width: 300, height: 250);
+  static const KidozBannerSize mediumRectangle = KidozBannerSize(
+    width: 300,
+    height: 250,
+  );
 
   /// The width, in logical pixels.
   final double width;

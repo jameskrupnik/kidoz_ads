@@ -2,10 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Signature of the per-ad event sink registered with [KidozAdsPlatform].
-typedef KidozAdEventHandler = void Function(
-  String event,
-  Map<Object?, Object?> arguments,
-);
+typedef KidozAdEventHandler =
+    void Function(
+      String event,
+      Map<Object?, Object?> arguments,
+    );
 
 /// The single method channel this package talks over, and the routing table
 /// that gets a native callback back to the Dart object that asked for it.

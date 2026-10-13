@@ -80,13 +80,13 @@ class _KidozBannerAdState extends State<KidozBannerAd> {
   }
 
   Map<String, Object?> get _creationParams => <String, Object?>{
-        'adId': _adId,
-        // Logical pixels. Android needs these in device pixels and converts on
-        // its side, because the density it should use is the one attached to
-        // the view's context, not whatever Flutter last reported.
-        'width': widget.size.width,
-        'height': widget.size.height,
-      };
+    'adId': _adId,
+    // Logical pixels. Android needs these in device pixels and converts on
+    // its side, because the density it should use is the one attached to
+    // the view's context, not whatever Flutter last reported.
+    'width': widget.size.width,
+    'height': widget.size.height,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -96,10 +96,10 @@ class _KidozBannerAdState extends State<KidozBannerAd> {
       child: switch (defaultTargetPlatform) {
         TargetPlatform.android => _buildAndroidView(),
         TargetPlatform.iOS => UiKitView(
-            viewType: _viewType,
-            creationParams: _creationParams,
-            creationParamsCodec: const StandardMessageCodec(),
-          ),
+          viewType: _viewType,
+          creationParams: _creationParams,
+          creationParamsCodec: const StandardMessageCodec(),
+        ),
         // A banner slot on an unsupported platform renders as empty space of
         // the right size rather than throwing, so a desktop debug run of an
         // app that embeds one still lays out correctly.

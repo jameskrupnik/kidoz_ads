@@ -33,7 +33,8 @@ class _HomePageState extends State<HomePage> {
     if (publisherId.isEmpty || securityToken.isEmpty) {
       setState(() {
         _started = false;
-        _log = 'No credentials. Pass --dart-define=KIDOZ_PUBLISHER_ID=... '
+        _log =
+            'No credentials. Pass --dart-define=KIDOZ_PUBLISHER_ID=... '
             'and --dart-define=KIDOZ_SECURITY_TOKEN=...';
       });
       return;
