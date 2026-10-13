@@ -35,11 +35,13 @@
 ///
 /// Two things follow that are worth knowing before you integrate:
 ///
-///  - **Registering a publisher account is a representation about your whole
-///    portfolio.** Kidoz requires publishers to confirm that *all* of their
-///    content properties are COPPA and GDPR compliant and perform no tracking
-///    of under-13 users. That is account-scoped language, so an app that does
-///    track cannot simply be left off the Kidoz account and forgotten about.
+///  - **Check the Publisher Agreement before mixing audiences on one
+///    account.** Some of Kidoz's integration docs say publishers must confirm
+///    that *all* of their content properties are COPPA compliant and track no
+///    under-13 users. The Publisher Agreement itself, read 2026-09-18, puts no
+///    such warranty on the publisher; the README quotes the clauses. If your
+///    portfolio mixes child-directed and adult apps, read the current text
+///    rather than either summary.
 ///  - **There is no placement id anywhere in this API.** Kidoz keys everything
 ///    off the publisher credentials and picks the creative contextually. If you
 ///    are porting from AdMob or InMobi, the placement argument you are looking
