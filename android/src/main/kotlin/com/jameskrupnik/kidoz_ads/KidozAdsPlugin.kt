@@ -153,6 +153,23 @@ class KidozAdsPlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallHan
             return
         }
 
+        // Checked here as well as in Dart, as on iOS: the Dart guard catches
+        // the ordinary programming error, but a caller that raced initialize()
+        // would reach a static load() that may never call back, and the
+        // caller's chain would stall rather than falling through.
+        if (!Kidoz.isInitialized) {
+            sendEvent(
+                adId,
+                "loadFailed",
+                mapOf(
+                    "code" to KidozErrorCode.NOT_INITIALIZED,
+                    "message" to "Kidoz SDK is not initialized",
+                ),
+            )
+            result.success(null)
+            return
+        }
+
         val activity = this.activity ?: run {
             result.error(
                 "NO_ACTIVITY",

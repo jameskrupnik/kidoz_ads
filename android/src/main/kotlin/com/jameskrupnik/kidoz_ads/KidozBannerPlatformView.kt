@@ -10,6 +10,7 @@ import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 import net.kidoz.ads.banner.KidozBannerAdCallback
 import net.kidoz.ads.banner.KidozBannerView
+import net.kidoz.sdk.Kidoz
 import net.kidoz.sdk.KidozError
 
 /** Builds the [KidozBannerPlatformView]s that back `KidozBannerAd`. */
@@ -78,7 +79,18 @@ internal class KidozBannerPlatformView(
             layoutParams = ViewGroup.LayoutParams(widthPx, heightPx)
         }
 
-        if (activity == null) {
+        if (!Kidoz.isInitialized) {
+            // As on iOS: a banner loaded before the SDK is up may never call
+            // back, which would leave the slot waiting rather than collapsing.
+            sendEvent(
+                adId,
+                "loadFailed",
+                mapOf(
+                    "code" to KidozErrorCode.NOT_INITIALIZED,
+                    "message" to "Kidoz SDK is not initialized",
+                ),
+            )
+        } else if (activity == null) {
             sendEvent(
                 adId,
                 "loadFailed",
