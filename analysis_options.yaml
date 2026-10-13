@@ -29,13 +29,6 @@ linter:
   rules:
     # --- Off, with reasons -------------------------------------------------
 
-    # Carried from the app config this is shared with. A doc comment on
-    # every public
-    # member buys a wall of `/// The name.` restatements, which is the
-    # opposite of readable — and it would drown the comments in these repos
-    # that are genuinely worth reading.
-    public_member_api_docs: false
-
     # **This rule breaks `math.max`/`math.min` and it broke five apps here.**
     # Rewriting `math.max(0.0, x)` to `math.max(0, x)` selects the `num`
     # overload instead of the `double` one, so the result no longer assigns to
@@ -59,6 +52,11 @@ linter:
     no_leading_underscores_for_local_identifiers: false
 
     # --- On, and not in the base set ---------------------------------------
+
+    # On here, unlike the shared app config, because this is a published
+    # package: pub.dev renders every public member's doc as its API page, and
+    # an undocumented one is a blank entry there.
+    public_member_api_docs: true
 
     # The four that push a `build` method toward widgets and away from
     # hand-rolled containers.
